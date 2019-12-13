@@ -1,0 +1,81 @@
+---
+title: "Cogcom exam"
+author: "Sigrid"
+date: "12/12/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r packages}
+pacman::p_load(tidyverse, MuMIn, pastecs, WRS2, purr, data.table, magrittr)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+
+files <- list.files(path = "data",     #PUT THE NAME OF YOUR FOLDER WITH DATA in the quotes, it also might need '/' in the end, experiment with it :)
+                    pattern = ".csv",  #everything that contains '.csv' in its name will be listed
+                    full.names = T)    #makes it include directory path, so instead of 'logfile_1.csv' it will be 'data/logfile_1.csv')
+
+#read all the files into a tibble (a fancy df)
+#data1 <- lapply(files, read_csv) %>%  # apply read_csv() to every element in files list and send the resulting tibbles to the next line
+  #bind_rows()  #bind rows from resulting tibbles together so you have one dataset with all of your data
+
+data <- lapply(files, read_csv) %>% plyr::rbind.fill()
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r PETERS KODE DO NOT TOUCH}
+
+df <- data.frame(participant = data$participant, køn = data$Køn, alder = data$Alder, computertimer = data$`Hvor mange timer computer/xbox/andet spiller De om ugen?`, køretimer = data$`Hvor mange timer om ugen kører De cirka?`, kørekort = data$`Har De kørekort? (ja/nej)`, condition = data$Condition, estimate = data$Estimate, date = data$date, ratespeed1 = data$ratespeed1.response, ratespeed1_rt = data$ratespeed1.rt, ændre_svar = data$key_resp_4.keys, ændre_svar_rt = data$key_resp_4.rt, ratespeed2 = data$ratespeed2.response, ratespeed2_rt = data$ratespeed2.rt, glasskår = data$key_resp_3.keys, glasskår_rt = data$key_resp_3.rt)
+
+df$ratespeed2[is.na(df$ratespeed2)] = 0
+df$ratespeed2_rt[is.na(df$ratespeed2_rt)] = 0
+
+colnames = c("partipant", "køn", "alder", "computertimer", "køretimer", "kørekort", "condition", "estimate", "date", "ratespeed1", "ratespeed1_rt", "ændre_svar", "ændre_svar_rt", "ratespeed2", "ratespeed2_rt", "glasskår", "glasskår_rt")
+
+#Make new dataframe
+new_df = data.frame(matrix(ncol = ncol(df), nrow = length(levels(df$data.participant))))
+colnames(new_df) = colnames
+
+#Go through each participant separately
+for (participant_id in levels(df$participant)) {
+  #Make a temporary dataframe only with that participant
+  temp_df = filter(df, participant == participant_id)
+  
+  #Make a new row to append to the new dataframe
+  new_row = data.frame(matrix(nrow = 1, ncol = ncol(new_df)))
+  colnames(new_row) = colnames
+  
+  #Go through each column in the dataframe
+  for (column in 1:ncol(temp_df)) {
+    #And also each row
+    for (row in 1:nrow(temp_df)) {
+      
+      #If the data in that row and column is not NA
+      if (is.na(temp_df[row,column]) == FALSE) {
+        #Save it to the new row
+        new_row[1,column] = as.character(temp_df[row,column])
+      }
+    }
+  }
+  #Append the new row to the new dataframe
+  new_df = rbind(new_df, new_row)
+  }
+
+```
+
