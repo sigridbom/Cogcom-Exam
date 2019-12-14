@@ -79,3 +79,102 @@ for (participant_id in levels(df$participant)) {
 
 ```
 
+```{r cleaning part 1}
+
+class(new_df$computertimer)
+new_df$computertimer <- as.factor(new_df$computertimer)
+class(new_df$computertimer)
+levels(new_df$computertimer)
+
+#alder (2 rettelser)
+new_df[63, 3] = 15
+new_df[98, 3] = 16
+
+#computertimer (12 rettelser)
+new_df[8, 4] = 7
+new_df[26, 4] = 0
+new_df[27, 4] = 0
+new_df[33, 4] = 2
+new_df[35, 4] = 6
+new_df[42, 4] = 7
+new_df[44, 4] = 0.5
+new_df[48, 4] = 0
+new_df[52, 4] = 5
+new_df[63, 4] = 6
+new_df[97, 4] = 1
+new_df[114, 4] = 7
+
+#køretimer (10 rettelser)
+new_df[12,5] = 0 
+new_df[27,5] = 0
+new_df[29, 5] = 0.5
+new_df[47,5] = 1.5
+new_df[66, 5] = 0
+new_df[68, 5] = 0
+new_df[76,5] = 0
+new_df[97,5] = 0
+new_df[98, 5] = 0
+new_df[117,5] = 6.5
+
+#kørekort
+new_df[102,6]="nej"
+
+# to lower case kørekort
+new_df$kørekort <- tolower(new_df$kørekort)
+
+# fixing university professor's data
+new_df[125, 5] = 8
+new_df[125, 4] = 0
+
+# removing person with no age and NA's (8 rækker)
+new_df <- new_df[-c(13, 34, 60, 71, 83, 98, 104, 119), ]
+
+#### FJERN JULEMOR
+
+#creating a new column with row numbers
+new_df$ID <- seq.int(nrow(new_df))
+
+```
+
+
+DATA FRAME LOOKS GOOD NOW
+
+```{r cleaning part 2}
+
+#creating a new column with rating speed
+
+class(new_df$ratespeed1)
+new_df$ratespeed1 <- as.numeric(new_df$ratespeed1)
+new_df$ratespeed2 <- as.numeric(new_df$ratespeed2)
+
+new_df$hastighed1 <- new_df$ratespeed1*25
+new_df$hastighed2 <- new_df$ratespeed2*25
+
+
+```
+
+```{r counting conditions and estimate }
+
+# Counting the participant in condition and estimate
+table(df_age$condition)
+table(df_age$estimate)
+
+# separating into older than and younger than 20 years
+
+a1_old <- table(new_df$condition == "A" & new_df$estimate == 1 & new_df$alder >= 20)
+a2_old <- table(new_df$condition == "A" & new_df$estimate == 2 & new_df$alder >= 20)
+b1_old <- table(new_df$condition == "B" & new_df$estimate == 1 & new_df$alder >= 20)
+b2_old <- table(new_df$condition == "B" & new_df$estimate == 2 & new_df$alder >= 20)
+
+a1_ung <- table(new_df$condition == "A" & new_df$estimate == 1 & new_df$alder < 20)
+a2_ung <- table(new_df$condition == "A" & new_df$estimate == 2 & new_df$alder < 20)
+b1_ung <- table(new_df$condition == "B" & new_df$estimate == 1 & new_df$alder < 20)
+b2_ung <- table(new_df$condition == "B" & new_df$estimate == 2 & new_df$alder < 20)
+
+
+#ungroup()
+#df_age <- new_df %>% group_by(new_df$alder >=20 | new_df$alder < 20)
+#remove(df_age)
+
+```
+
