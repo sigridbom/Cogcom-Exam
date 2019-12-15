@@ -127,7 +127,7 @@ new_df[125, 5] = 8
 new_df[125, 4] = 0
 
 # removing person with no age and NA's (8 rækker)
-new_df <- new_df[-c(13, 34, 60, 71, 83, 98, 104, 119), ]
+new_df <- new_df[-c(13, 34, 60, 71, 83, 98, 104, 119, 123), ]
 
 #### FJERN JULEMOR
 
@@ -153,11 +153,18 @@ new_df$hastighed2 <- new_df$ratespeed2*25
 
 ```
 
+```{r gem datasæt}
+
+#når al data er indsamlet - husk at gemme det færdige datasæt her, og loade det igen - evt lav et nyt r-markdown? 
+
+```
+
+
 ```{r counting conditions and estimate }
 
 # Counting the participant in condition and estimate
-table(df_age$condition)
-table(df_age$estimate)
+table(new_df$condition)
+table(new_df$estimate)
 
 # separating into older than and younger than 20 years
 
@@ -171,6 +178,15 @@ a2_ung <- table(new_df$condition == "A" & new_df$estimate == 2 & new_df$alder < 
 b1_ung <- table(new_df$condition == "B" & new_df$estimate == 1 & new_df$alder < 20)
 b2_ung <- table(new_df$condition == "B" & new_df$estimate == 2 & new_df$alder < 20)
 
+
+a1_old
+a2_old
+b1_old
+b2_old
+a1_ung
+a2_ung
+b1_ung
+b2_ung
 
 #ungroup()
 #df_age <- new_df %>% group_by(new_df$alder >=20 | new_df$alder < 20)
