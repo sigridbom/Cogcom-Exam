@@ -9,21 +9,13 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r packages}
+```{r packages, echo = FALSE}
 pacman::p_load(tidyverse, MuMIn, pastecs, WRS2, purr, data.table, magrittr, dplyr)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
+```{r importing data, echo=FALSE}
 
 files <- list.files(path = "data",     #PUT THE NAME OF YOUR FOLDER WITH DATA in the quotes, it also might need '/' in the end, experiment with it :)
                     pattern = ".csv",  #everything that contains '.csv' in its name will be listed
@@ -37,7 +29,6 @@ data <- lapply(files, read_csv) %>% plyr::rbind.fill()
 
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 ```{r PETERS KODE DO NOT TOUCH}
 
@@ -117,37 +108,43 @@ new_df[117,5] = 6.5
 
 ###### NY JULIE RET 
 ###### computertimer
-
-#participant "Miss Sunshine"
-new_df[135, 4] = 0
-
-#participant "Nanna"
-new_df[136, 4] = 0.5
+# participant "Jesper"
+new_df[132, 4] = 0.5
+# participant "Miss Sunshine"
+new_df[141, 4] = 0
+# participant "Nanna"
+new_df[142, 4] = 0.5
 
 ##### NY JULIE RET
 ##### køretimer
 # participant "CRE95-1-AFAHQQE"
 new_df[122,5] = 6.5
-
 # participant "Faust"
-new_df[125,5] = 0.5
+new_df[127,5] = 0.5
 
 ###### Både køretimer og computertimer
 # participant "Allan Mose"
 new_df[116, 4] = 20
 new_df[116, 5] = 2
-# participant "university professor
-new_df[142, 4] = 0
-new_df[142, 5] = 8
-# Particpant "perfekt"
-new_df[139, 4] = 0
-new_df[139, 5] = 8
 # participant "bananasplit med softice"
 new_df[120, 4] = 0
 new_df[120, 5] = 0
 # participant "fluy"
-new_df[126, 4] = 0
-new_df[126, 5] = 1.5
+new_df[128, 4] = 0
+new_df[128, 5] = 1.5
+# participant "KapperDaRapper"
+new_df[135, 4] = 4
+new_df[135, 5] = 1.5
+# Particpant "perfekt"
+new_df[145, 4] = 0
+new_df[145, 5] = 8
+# participant "Sugar"
+new_df[149, 4] = 0
+new_df[149, 5] = 1
+# participant "university professor
+new_df[150, 4] = 0
+new_df[150, 5] = 8
+
 
 #kørekort
 new_df[102,6] = "nej"
@@ -157,9 +154,9 @@ new_df$kørekort <- tolower(new_df$kørekort)
 
 # removing person with no age and NA's (8 rækker)
 new_df <- new_df[-c(13, 34, 60, 71, 83, 98, 104, #participants with numbers as ID
-                    119, 124, 130), ] # participants with names as ID
+                    119, 124, 134), ] # participants with names as ID
 # Participants med navne, der skal fjernes: 
-# "Banan", "Duc7", "fluy", "Julemor", 
+# "Banan", "Duc7", "Julemor", 
 
 # "Banan" kunne ikke se rating skalaen og vidste derfor ikke hvad han selv svarede
 # "Julemor" oplyste bagefter at hun kendte eksperimentet i forvejen
@@ -243,13 +240,13 @@ by_cond %>% summarise(mean(hastighed1))
 class(new_df$ændre_svar)
 new_df$ændre_svar <- as.factor(new_df$ændre_svar)
 
-nyt_svar <- data.frame(ID = sample(letters, 132, rep = TRUE))
+nyt_svar <- data.frame(ID = sample(letters, 141, rep = TRUE))
 nyt_svar %>% 
   group_by(new_df$ændre_svar) %>% 
   summarise(no_rows = length(ID))
 
-23/109 
-# = roughly 21%
+23/141
+# = roughly 16%
 
 #cond_a <- new_df$condition == "A"
 
