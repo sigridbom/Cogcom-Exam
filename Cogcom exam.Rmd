@@ -16,7 +16,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r packages}
-pacman::p_load(tidyverse, MuMIn, pastecs, WRS2, purr, data.table, magrittr)
+pacman::p_load(tidyverse, MuMIn, pastecs, WRS2, purr, data.table, magrittr, dplyr)
 ```
 
 ## Including Plots
@@ -104,7 +104,7 @@ new_df[63, 4] = 6
 new_df[97, 4] = 1
 new_df[114, 4] = 7
 
-#køretimer (10 rettelser)
+#køretimer (9 rettelser)
 new_df[12,5] = 0 
 new_df[27,5] = 0
 new_df[29, 5] = 0.5
@@ -113,23 +113,52 @@ new_df[66, 5] = 0
 new_df[68, 5] = 0
 new_df[76,5] = 0
 new_df[97,5] = 0
-new_df[98, 5] = 0
 new_df[117,5] = 6.5
 
+###### NY JULIE RET 
+###### computertimer
+
+#participant "Miss Sunshine"
+new_df[135, 4] = 0
+
+#participant "Nanna"
+new_df[136, 4] = 0.5
+
+##### NY JULIE RET
+##### køretimer
+# participant "CRE95-1-AFAHQQE"
+new_df[122,5] = 6.5
+
+# participant "Faust"
+new_df[125,5] = 0.5
+
+###### Både køretimer og computertimer
+
+# participant "Allan Mose"
+new_df[116, 4] = 20
+new_df[116, 5] = 2
+# participant "university professor
+new_df[142, 4] = 0
+new_df[142, 5] = 8
+# Particpant "perfekt"
+new_df[139, 4] = 0
+new_df[139, 5] = 8
+
 #kørekort
-new_df[102,6]="nej"
+new_df[102,6] = "nej"
 
 # to lower case kørekort
 new_df$kørekort <- tolower(new_df$kørekort)
 
-# fixing university professor's data
-new_df[125, 5] = 8
-new_df[125, 4] = 0
-
 # removing person with no age and NA's (8 rækker)
-new_df <- new_df[-c(13, 34, 60, 71, 83, 98, 104, 119, 123), ]
+new_df <- new_df[-c(13, 34, 60, 71, 83, 98, 104, #participants with numbers as ID
+                    119, 120, 126, 130), ] # participants with names as ID
+# Participants med navne, der skal fjernes: 
+# "Banan", "bananasplit med softice", "fluy", "Julemor", 
 
-#### FJERN JULEMOR
+# "Banan" kunne ikke se rating skalaen og vidste derfor ikke hvad han selv svarede
+# "Julemor" oplyste bagefter at hun kendte eksperimentet i forvejen
+# De andre har glemt at udfylde det hele
 
 #creating a new column with row numbers
 new_df$ID <- seq.int(nrow(new_df))
@@ -191,6 +220,23 @@ b2_ung
 #ungroup()
 #df_age <- new_df %>% group_by(new_df$alder >=20 | new_df$alder < 20)
 #remove(df_age)
+
+```
+
+```{r første udregninger}
+
+mean(new_df$hastighed1)
+
+cond_a <- new_df$condition == "A"
+
+new_df$condition <- as.factor(new_df$condition)
+class(new_df$condition)
+
+by_cond <- group_by(new_df, new_df$condition)
+#group_by(new_df, condition)
+mean(new_df$hastighed1)
+
+class()?cla
 
 ```
 
