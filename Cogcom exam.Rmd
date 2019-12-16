@@ -133,7 +133,6 @@ new_df[122,5] = 6.5
 new_df[125,5] = 0.5
 
 ###### Både køretimer og computertimer
-
 # participant "Allan Mose"
 new_df[116, 4] = 20
 new_df[116, 5] = 2
@@ -143,6 +142,12 @@ new_df[142, 5] = 8
 # Particpant "perfekt"
 new_df[139, 4] = 0
 new_df[139, 5] = 8
+# participant "bananasplit med softice"
+new_df[120, 4] = 0
+new_df[120, 5] = 0
+# participant "fluy"
+new_df[126, 4] = 0
+new_df[126, 5] = 1.5
 
 #kørekort
 new_df[102,6] = "nej"
@@ -152,19 +157,18 @@ new_df$kørekort <- tolower(new_df$kørekort)
 
 # removing person with no age and NA's (8 rækker)
 new_df <- new_df[-c(13, 34, 60, 71, 83, 98, 104, #participants with numbers as ID
-                    119, 120, 126, 130), ] # participants with names as ID
+                    119, 124, 130), ] # participants with names as ID
 # Participants med navne, der skal fjernes: 
-# "Banan", "bananasplit med softice", "fluy", "Julemor", 
+# "Banan", "Duc7", "fluy", "Julemor", 
 
 # "Banan" kunne ikke se rating skalaen og vidste derfor ikke hvad han selv svarede
 # "Julemor" oplyste bagefter at hun kendte eksperimentet i forvejen
-# De andre har glemt at udfylde det hele
+# "Duc7" har ikke lavet eksperimentet færdigt
 
 #creating a new column with row numbers
 new_df$ID <- seq.int(nrow(new_df))
 
 ```
-
 
 DATA FRAME LOOKS GOOD NOW
 
@@ -225,18 +229,35 @@ b2_ung
 
 ```{r første udregninger}
 
-mean(new_df$hastighed1)
-
-cond_a <- new_df$condition == "A"
-
+#changing class to be able to use group_by
 new_df$condition <- as.factor(new_df$condition)
 class(new_df$condition)
 
-by_cond <- group_by(new_df, new_df$condition)
-#group_by(new_df, condition)
-mean(new_df$hastighed1)
+#making a new dataframe grouped by condition
+by_cond <- group_by(new_df, condition)
 
-class()?cla
+#calculating mean estimate of speed according to condition
+by_cond %>% summarise(mean(hastighed1))
+
+# calculating the number of people who changed their answers
+class(new_df$ændre_svar)
+new_df$ændre_svar <- as.factor(new_df$ændre_svar)
+
+nyt_svar <- data.frame(ID = sample(letters, 132, rep = TRUE))
+nyt_svar %>% 
+  group_by(new_df$ændre_svar) %>% 
+  summarise(no_rows = length(ID))
+
+23/109 
+# = roughly 21%
+
+#cond_a <- new_df$condition == "A"
+
+#making a new dataframe grouped by estimate - to use later
+class(new_df$estimate)
+new_df$estimate <- as.factor(new_df$estimate)
+by_estimate <- group_by(new_df, estimate)
+
 
 ```
 
