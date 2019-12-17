@@ -683,11 +683,12 @@ ung_ja <- boot::inv.logit(1.3412)
 old_ja <- boot::inv.logit(1.3412 + 0.8561)
 # = 90%
 
+# what???
+
 ```
 
 Her er intercept = at man er under 20 år gammel og har svaret ja på spørgsmålet om hvorvidt man vil ændre sit svar
-
-går fra 1.3412 til 0.8561 når man ændrer alderen fra under 20 til over 20
+Something is wrong though....
 
 ```{r cut outs}
 #cond_a <- new_df$condition == "A"
