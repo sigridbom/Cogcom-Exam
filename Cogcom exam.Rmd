@@ -11,8 +11,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r packages, echo = FALSE}
-pacman::p_load(tidyverse, MuMIn, pastecs, WRS2, purr, data.table, magrittr, dplyr)
+pacman::p_load(tidyverse, MuMIn, pastecs, WRS2, data.table, magrittr, dplyr, ggplot2, lme4, boot, lmerTest, caret, e1071, car, multcomp, reshape2)
+
 ```
+
 
 
 ```{r importing data, echo=FALSE}
@@ -71,11 +73,6 @@ for (participant_id in levels(df$participant)) {
 ```
 
 ```{r cleaning part 1}
-
-class(new_df$computertimer)
-new_df$computertimer <- as.factor(new_df$computertimer)
-class(new_df$computertimer)
-levels(new_df$computertimer)
 
 #alder (2 rettelser)
 new_df[63, 3] = 15
@@ -136,14 +133,14 @@ new_df[128, 5] = 1.5
 new_df[135, 4] = 4
 new_df[135, 5] = 1.5
 # Particpant "perfekt"
-new_df[145, 4] = 0
-new_df[145, 5] = 8
+new_df[146, 4] = 0
+new_df[146, 5] = 8
 # participant "Sugar"
-new_df[149, 4] = 0
-new_df[149, 5] = 1
-# participant "university professor
 new_df[150, 4] = 0
-new_df[150, 5] = 8
+new_df[150, 5] = 1
+# participant "university professor
+new_df[151, 4] = 0
+new_df[151, 5] = 8
 
 
 #kørekort
@@ -167,7 +164,6 @@ new_df$ID <- seq.int(nrow(new_df))
 
 ```
 
-DATA FRAME LOOKS GOOD NOW
 
 ```{r cleaning part 2}
 
@@ -182,6 +178,9 @@ new_df$hastighed2 <- new_df$ratespeed2*25
 
 
 ```
+
+DATA FRAME LOOKS GOOD NOW
+
 
 ```{r gem datasæt}
 
@@ -224,7 +223,7 @@ b2_ung
 
 ```
 
-```{r første udregninger}
+```{r mean speed estimate according to condition}
 
 #changing class to be able to use group_by
 new_df$condition <- as.factor(new_df$condition)
@@ -236,18 +235,461 @@ by_cond <- group_by(new_df, condition)
 #calculating mean estimate of speed according to condition
 by_cond %>% summarise(mean(hastighed1))
 
-# calculating the number of people who changed their answers
+```
+
+
+
+```{r visualizing the data}
+
+ggplot(new_df, aes(hastighed1, ID)) + geom_point() + geom_smooth(method = lm)
+
+ggplot(new_df, aes(condition, hastighed1)) + geom_point() + geom_smooth(method = lm)
+
+
+```
+
+
+
+```{r t-test assumptions hastighed/condition}
+
+#from class 6 notes filled
+
+#first, remove outliers from the whole data (everything 3 sd away from the mean)
+#calculate z score
+new_df$rt_z = (new_df$hastighed1 -mean(new_df$hastighed1))/sd(new_df$hastighed1)
+
+#filter data 
+no_outliers = new_df %>% filter(rt_z > -3 & rt_z < 3) 
+
+#subsetting data
+condA <- no_outliers %>% filter(condition == "A")
+condB <- no_outliers %>% filter(condition == "B")
+
+############ Checking Assumptions for Condition A
+#histogram
+ggplot(condA, aes(x = condA$hastighed1)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.4) +
+  ggtitle("Distribution of speed estimate1 in condition A") +
+  stat_function(fun = dnorm, args = list(mean = mean(condA$hastighed1, na.rm = TRUE), sd = sd(condA$hastighed1, na.rm = TRUE)), colour = "red", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(condA, aes(sample = hastighed1)) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for speed estimate 1 data in Condition A") +
+  theme_minimal()
+
+
+############ Checking Assumptions for Condition B
+#histogram
+ggplot(condB, aes(x = condB$hastighed1)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.4) +
+  ggtitle("Distribution of speed estimate1 in condition B") +
+  stat_function(fun = dnorm, args = list(mean = mean(condB$hastighed1, na.rm = TRUE), sd = sd(condB$hastighed1, na.rm = TRUE)), colour = "blue", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(condB, aes(sample = hastighed1)) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for speed estimate 1 data in Condition A") +
+  theme_minimal()
+
+
+#stat.desc
+round(pastecs::stat.desc(cbind(condA$hastighed1, condB$hastighed1), basic = FALSE, norm = TRUE), digits = 2)
+
+
+```
+Conclusion about the data being normally distributed or not:
+Visually the data do not look normally distributed in any way, however it looks a lot better numerically. I will try to transform the data. 
+
+```{r transforming the data}
+
+#logging the data for both conditions
+condA <- condA %>% mutate(rt_log = log(condA$hastighed1), 
+                                    rt_sqrt = sqrt(condA$hastighed1),
+                                    rt_inv = 1/condA$hastighed1)
+
+condB <- condB %>% mutate(rt_log = log(condB$hastighed1), 
+                                    rt_sqrt = sqrt(condB$hastighed1),
+                                    rt_inv = 1/condB$hastighed1)
+
+#checking numeric values for both conditions with the logged data
+round(pastecs::stat.desc(cbind(condA$rt_log, condA$rt_sqrt, condA$rt_inv, condB$rt_log, condB$rt_sqrt, condB$rt_inv), basic = F, norm = TRUE), digits = 2)
+
+# It seems that the log and the squareroot transformations fit the data better than the reciprocal transformation.
+
+
+```
+```{r visual inspection of the transformed data}
+
+#Check assumptions again
+############ Checking Assumptions for Condition A (best candidates: log and sqrt)
+#histogram
+ggplot(condA, aes(x = rt_log)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.25) +
+  ggtitle("Distribution of speed estimate 1 data (log transformed) in Condition A") +
+  stat_function(fun = dnorm, args = list(mean = mean(condA$rt_log, na.rm = TRUE), sd = sd(condA$rt_log, na.rm = TRUE)), colour = "darkgreen", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(condA, aes(sample = rt_log )) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for speed estimate 1 data (log transformed) in Condition 1") +
+  theme_minimal()
+
+#histogram
+ggplot(condA, aes(x = rt_sqrt)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.25) +
+  ggtitle("Distribution of speed estimate 1 data (squareroot transformed) in Condition A") +
+  stat_function(fun = dnorm, args = list(mean = mean(condA$rt_sqrt, na.rm = TRUE), sd = sd(condA$rt_sqrt, na.rm = TRUE)), colour = "darkgreen", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(condA, aes(sample = rt_sqrt)) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for speed estimate 1 data (squareroot transformed) in Condition A") +
+  theme_minimal()
+
+
+############ Checking Assumptions for Condition B (best candidates: log and sqrt)
+#histogram
+ggplot(condB, aes(x = rt_log)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.25) +
+  ggtitle("Distribution of speed estimate 1 data (log transformed) in Condition B") +
+  stat_function(fun = dnorm, args = list(mean = mean(condB$rt_log, na.rm = TRUE), sd = sd(condB$rt_log, na.rm = TRUE)), colour = "darkgreen", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(condB, aes(sample = rt_log )) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for speed estimate 1 data (log transformed) in Condition B") +
+  theme_minimal()
+
+
+#histogram
+ggplot(condB, aes(x = rt_sqrt)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.25) +
+  ggtitle("Distribution of speed estimate 1 data (squareroot transformed) in Condition B") +
+  stat_function(fun = dnorm, args = list(mean = mean(condB$rt_sqrt, na.rm = TRUE), sd = sd(condB$rt_sqrt, na.rm = TRUE)), colour = "darkgreen", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(condB, aes(sample = rt_sqrt )) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for speed estimate 1 data (reciprocal transformed) in Condition B") +
+  theme_minimal()
+
+
+##### I'll continue with squareroot transformation. 
+## bind cond1 and cond2 together and keep only the needed transformation
+transformed_data <- bind_rows(condA, condB) %>% 
+  select(-c(rt_z, rt_log, rt_inv))
+
+```
+
+The data are still not normally distributed. I will therefore try different things:
+- a parametric t-test on the transformed data
+- a non-parametric independent t-test (between subject design)
+
+```{r t-test on hastighed1 and condition}
+
+# parametric tests on the transformed data
+t.test(transformed_data$rt_sqrt ~ transformed_data_sqrt$condition)
+
+#### calculating the SD of the mean of estimating spee 1 data according to condition on the transformed data
+condA %>% summarise(sd(rt_sqrt))
+condB %>% summarise(sd(rt_sqrt))
+
+# non-parametric test on non-transformed data
+WRS2::yuen(hastighed1 ~ condition, data = new_df)
+
+##### calculating the mean of estimating speed1 according to condition on the non-transformed data
+#changing class to be able to use group_by
+new_df$condition <- as.factor(new_df$condition)
+class(new_df$condition)
+
+#making a new dataframe grouped by condition
+by_cond <- group_by(new_df, condition)
+
+#calculating mean estimate of speed according to condition
+by_cond %>% summarise(mean(hastighed1))
+
+#calculating the SD of estimate of speed according to condition
+by_cond %>% summarise(sd(hastighed1))
+
+
+```
+Not significant results....
+
+From the parametric t-test on the sqrt transformed data:
+*Using an independent t-test, we found that condition B ("smadrede") did not significantly increase the average speed estimate of the car, t(137.16) = -0.86, p > .05, (M condA = 9.08, M condB = 9.27, SD condA = 1.28, SD condB = 1.38)*
+
+From the non-parametric t-test on the non-transformed data:
+*Using an independent t-test, we found that condition B ("smadrede") did not significantly increase the average speed estimate of the car, t(83.75) = 0.57, p > .05, (M condA = 83.97, M condB = 90.59, SD condA = 22.90, SD condB = 30.69)*
+
+#### Which one should we continue with when making graphs? 
+
+```{r visualizing the t-tests}
+
+transformed_data$condition <- as.factor(transformed_data$condition)
+
+ggplot(transformed_data, aes(x = condition, y = rt_sqrt, colour = condition)) +
+  theme_minimal() +
+  labs(x = "Condition", y = "Speed estimate 1 (squareroot transformation)") +
+  geom_boxplot(width = 0.5) +
+  ggtitle("Box Plot: Squareroot transformed speed estimate 1 data depending on condition") +
+  stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1)
+
+
+# trying the non-transformed data just to see
+new_df$condition <- as.factor(new_df$condition)
+ggplot(new_df, aes(x = condition, y = hastighed1, colour = condition)) +
+  theme_minimal() +
+  labs(x = "Condition", y = "Speed estimate 1") +
+  geom_boxplot(width = 0.5) +
+  ggtitle("Box Plot: Speed estimate 1 data depending on condition") +
+  stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1)
+
+
+#trying something
+rplot <- ggplot(transformed_data_sqrt, aes(x = condition, y = rt_sqrt, colour = condition)) +
+  theme_minimal() +
+    labs(x = "Condition", y = "Squareroot transformed speed estimate 1 data") 
+
+#Box plot - looks weird
+rplot +
+  geom_boxplot(width = 0.5) +
+  ggtitle("Box Plot with mean") +
+  stat_summary(fun.y = mean, geom = "point", shape = 23, colour = "Black") + geom_bar(aes(fill = condition), stat='summary', fun.y = mean, width = 0.5) +
+  stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1) +
+  ggtitle("Using Standard Error of the Mean") 
+
+
+#Violin plot
+rplot +
+  geom_violin() +
+  ggtitle("Violin Plot") +
+  stat_summary(fun.y = mean, geom = "point", shape = 23, colour = "Black") +
+  stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1)
+
+```
+### LOGISIC REGRESSION - Glas spørgsmål assumptions checking
+(see class 10 notes filled)
+
+*not required*
+ - logistic regression does not require a linear relationship between the dependent and independent variables.  
+      - the error terms (residuals) do not need to be normally distributed.
+      - homoscedasticity is not required
+      
+*required*
+  - binary logistic regression requires the dependent variable to be binary, i.e. a factor with two levels: 
+  Sigrid: Yes, glasskår har to mulige svar, ja eller nej. 
+
+  - logistic regression requires the observations to be independent of each other.  In other words, the observations should not come from repeated measurements or matched data - USE glmer() TO BUILD MIXED EFFECT MODELS THAT DEAL WITH VIOLATION OF THIS ASSUMPTION:
+  Sigrid: Yes, independent-measures design
+      
+  - logistic regression requires there to be little or no multicollinearity among the independent variables.  This means that the independent variables should not be too highly correlated with each other:
+  Sigrid: They are not (condition and glasskår question are not highly correlated)
+      
+  - logistic regression assumes linearity of independent variables and log odds.
+  *Sigrid: I guess? using plot() I get two plots with a linear line but I'm not sure what it means*
+  
+  - logistic regression typically requires a large sample size.  A general guideline is that you need at minimum of 10 cases with the least frequent outcome for each independent variable in your model. For example, if you have 5 independent variables and the expected probability of your least frequent outcome is .10, then you would need a minimum sample size of 500 (10*5 / .10).
+  Sigrid: I have 1 independent variable and the least frequent outcome of this is 
+  70/142 =  0.4929577
+  i.e. 49 * 1 / 0.49 = 100
+  We have more than 100 observations in our data set, so this assumption is met as well.
+
+```{r glas spørgsmål - logistic regression}
+
+# see class 10 notes filled
+new_df$glasskår <- as.factor(new_df$glasskår)
+
+#change levels
+new_df$glasskår <- relevel(new_df$glasskår, "j")
+#check levels (j og condA skal være baseline)
+levels(new_df$glasskår)
+levels(new_df$condition)
+
+#GLM model
+m <- glm(glasskår ~ condition, new_df, family = binomial)
+plot(m)
+summary(m)
+
+# the probability of answering yes in condition a
+boot::inv.logit(0.52609)
+# = 0.6285707
+
+
+# the probability of answering yes in condition b
+boot::inv.logit(0.52609 - 0.07411)
+# = 0.6111099
+
+#which means that the probability of answering no in condA is 
+1-0.6285707
+# = 0.37
+
+#which means that the probability of answering no in condB is 
+1-0.6111099
+# = 0.39
+
+
+MuMIn::r.squaredGLM(m)
+
+
+```
+
+### Reporting the results APA-style - not sure this is how to do it
+
+Results of the binary logistic regression indicated that there was a significant association between condition A and answering the glas question positively, beta-estimate = 0.53, SE = 0.25, p<.05, while the changing the condition to B did not have a significant effect on answering the glas question positively, beta-estimate = -0.71, SE = 0.35, p>.05. I.e. the answer of the glas question is not significantly modulated by the given condition.
+
+140 degrees of freedom = 188.59???
+
+```{r køretimer vs computertimer + kørekort}
+
+#making new data frames separating age above and younger than 20 years
+df_old <- new_df %>% subset(new_df$alder >= 20)
+df_ung <- new_df %>% subset(new_df$alder < 20)
+
+#changing classes
+df_old$computertimer <- as.numeric(df_old$computertimer)
+df_old$køretimer <- as.numeric(df_old$køretimer)
+class(df_old$computertimer)
+class(df_old$køretimer)
+
+# calculating the means
+m_old_com <- round(mean(df_old$computertimer), digits = 2)
+m_old_kør <- round(mean(df_old$køretimer), digits = 2)
+
+#changing classes
+df_ung$computertimer <- as.numeric(df_ung$computertimer)
+df_ung$køretimer <- as.numeric(df_ung$køretimer)
+class(df_ung$computertimer)
+class(df_ung$køretimer)
+
+#calculating the means
+m_ung_com <- round(mean(df_ung$computertimer), digits = 2)
+m_ung_kør <- round(mean(df_ung$køretimer), digits = 2)
+
+
+## should we make a t-tesT??? then we could say that the "adults significanlty drives more" etc etc but to support what? 
+
+
+###### kørekort eller ej
+# calculating the number of people have kørekort both in general and according to the different age groups 
+class(new_df$kørekort)
+new_df$kørekort <- as.factor(new_df$kørekort)
+class(new_df$kørekort)
+
+drivers_lice <- data.frame(ID = sample(letters, 142, rep = TRUE))
+drivers_lice %>% 
+  group_by(new_df$kørekort) %>% 
+  summarise(no_rows = length(ID))
+
+round(70/142, digits = 4)
+# = 49% har kørekort generelt
+
+drivers_lice_old <- data.frame(ID = sample(letters, 60, rep = TRUE))
+drivers_lice_old %>% 
+  group_by(df_old$kørekort) %>% 
+  summarise(no_rows = length(ID))
+
+round(56/60, digits = 4)
+# = 93% af dem over 20 år har kørekort
+
+drivers_lice_ung <- data.frame(ID = sample(letters, 82, rep = TRUE))
+drivers_lice_ung %>% 
+  group_by(df_ung$kørekort) %>% 
+  summarise(no_rows = length(ID))
+
+round(14/82, digits = 4)
+# = 17% af dem under 20 år har kørekort
+
+```
+
+
+```{r ændre svar}
+
+# calculating the number of people who changed their answers in general
 class(new_df$ændre_svar)
 new_df$ændre_svar <- as.factor(new_df$ændre_svar)
 
-nyt_svar <- data.frame(ID = sample(letters, 141, rep = TRUE))
+nyt_svar <- data.frame(ID = sample(letters, 142, rep = TRUE))
 nyt_svar %>% 
   group_by(new_df$ændre_svar) %>% 
   summarise(no_rows = length(ID))
 
-23/141
-# = roughly 16%
+round(23/142, digits = 4)
+# = roughly 16% changed their answer, rated a second time
 
+# calculating the number of YOUNG people who changed their answers
+class(df_ung$ændre_svar)
+
+nyt_svar_ung <- data.frame(ID = sample(letters, 82, rep = TRUE))
+nyt_svar_ung %>% 
+  group_by(df_ung$ændre_svar) %>% 
+  summarise(no_rows = length(ID))
+
+round(17/82, digits = 4)
+# = roughly 21%
+
+# calculating the number of OLD people who changed their answers
+class(df_old$ændre_svar)
+
+nyt_svar_old <- data.frame(ID = sample(letters, 60, rep = TRUE))
+nyt_svar_old %>% 
+  group_by(df_old$ændre_svar) %>% 
+  summarise(no_rows = length(ID))
+
+round(6/60, digits = 4)
+# = roughly 10%
+
+
+```
+Now testing if age significantly predicts if people will change their answer.. 
+
+remember assumptions!!
+
+```{r ændre svar logistic regression (multiple)}
+
+levels(new_df$ændre_svar)
+new_df$ændre_svar <- relevel(new_df$ændre_svar, "j")
+
+new_df$under_20 <- new_df$alder < 20
+class(new_df$under_20)
+
+new_df$under_20 <- as.factor(new_df$under_20)
+class(new_df$under_20)
+
+levels(new_df$under_20)
+new_df$under_20 <- relevel(new_df$under_20, "TRUE")
+levels(new_df$under_20)
+
+
+m_svar <- glm(ændre_svar ~ under_20, family = binomial, data = new_df)
+
+summary(m_svar)
+
+ung_ja <- boot::inv.logit(1.3412)
+# = 80%
+
+old_ja <- boot::inv.logit(1.3412 + 0.8561)
+# = 90%
+
+```
+
+Her er intercept = at man er under 20 år gammel og har svaret ja på spørgsmålet om hvorvidt man vil ændre sit svar
+
+går fra 1.3412 til 0.8561 når man ændrer alderen fra under 20 til over 20
+
+```{r cut outs}
 #cond_a <- new_df$condition == "A"
 
 #making a new dataframe grouped by estimate - to use later
@@ -256,5 +698,9 @@ new_df$estimate <- as.factor(new_df$estimate)
 by_estimate <- group_by(new_df, estimate)
 
 
+class(new_df$computertimer)
+new_df$computertimer <- as.factor(new_df$computertimer)
+class(new_df$computertimer)
+levels(new_df$computertimer)
 ```
 
