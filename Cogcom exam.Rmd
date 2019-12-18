@@ -78,7 +78,7 @@ for (participant_id in levels(df$participant)) {
 new_df[63, 3] = 15
 new_df[98, 3] = 16
 
-#computertimer (12 rettelser)
+#computertimer (11 rettelser)
 new_df[8, 4] = 7
 new_df[26, 4] = 0
 new_df[27, 4] = 0
@@ -90,7 +90,6 @@ new_df[48, 4] = 0
 new_df[52, 4] = 5
 new_df[63, 4] = 6
 new_df[97, 4] = 1
-new_df[114, 4] = 7
 
 #køretimer (9 rettelser)
 new_df[12,5] = 0 
@@ -106,18 +105,18 @@ new_df[117,5] = 6.5
 ###### NY JULIE RET 
 ###### computertimer
 # participant "Jesper"
-new_df[132, 4] = 0.5
+new_df[134, 4] = 0.5
 # participant "Miss Sunshine"
-new_df[141, 4] = 0
+new_df[145, 4] = 0
 # participant "Nanna"
-new_df[142, 4] = 0.5
+new_df[146, 4] = 0.5
 
 ##### NY JULIE RET
 ##### køretimer
 # participant "CRE95-1-AFAHQQE"
 new_df[122,5] = 6.5
 # participant "Faust"
-new_df[127,5] = 0.5
+new_df[129,5] = 0.5
 
 ###### Både køretimer og computertimer
 # participant "Allan Mose"
@@ -127,31 +126,53 @@ new_df[116, 5] = 2
 new_df[120, 4] = 0
 new_df[120, 5] = 0
 # participant "fluy"
-new_df[128, 4] = 0
-new_df[128, 5] = 1.5
+new_df[130, 4] = 0
+new_df[130, 5] = 1.5
 # participant "KapperDaRapper"
-new_df[135, 4] = 4
-new_df[135, 5] = 1.5
+new_df[138, 4] = 4
+new_df[138, 5] = 1.5
 # Particpant "perfekt"
-new_df[146, 4] = 0
-new_df[146, 5] = 8
-# participant "Sugar"
 new_df[150, 4] = 0
-new_df[150, 5] = 1
+new_df[150, 5] = 8
+# participant "Sugar"
+new_df[156, 4] = 0
+new_df[156, 5] = 1
 # participant "university professor
-new_df[151, 4] = 0
-new_df[151, 5] = 8
+new_df[157, 4] = 0
+new_df[157, 5] = 8
 
+
+# particpant "emilie"
+new_df[128, 2] = "Kvinde"
+new_df[128, 6] = "ja"
+new_df[128, 5] = 0.5
+
+# particpant "julie"
+new_df[137, 2] = "Kvinde"
+new_df[137, 6] = "nej"
+
+# participant "mette"
+new_df[144, 2] = "Kvinde"
+new_df[144, 6] = "ja"
+
+# participant "peter"
+new_df[151, 2] = "Mand"
+new_df[151, 6] = "ja"
+
+# participant "poul"
+new_df[152, 2] = "Mand"
+new_df[152, 6] = "ja"
 
 #kørekort
 new_df[102,6] = "nej"
+
 
 # to lower case kørekort
 new_df$kørekort <- tolower(new_df$kørekort)
 
 # removing person with no age and NA's (8 rækker)
-new_df <- new_df[-c(13, 34, 60, 71, 83, 98, 104, #participants with numbers as ID
-                    119, 124, 134), ] # participants with names as ID
+new_df <- new_df[-c(13, 34, 60, 71, 83, 98, 104, 114, #participants with numbers as ID
+                    119, 125, 136), ] # participants with names as ID
 # Participants med navne, der skal fjernes: 
 # "Banan", "Duc7", "Julemor", 
 
@@ -185,6 +206,15 @@ DATA FRAME LOOKS GOOD NOW
 ```{r gem datasæt}
 
 #når al data er indsamlet - husk at gemme det færdige datasæt her, og loade det igen - evt lav et nyt r-markdown? 
+
+write.csv(new_df,"data_done.csv")
+
+```
+
+
+```{r JULIE, START HER}
+
+new_df <- read_csv("data_done.csv")
 
 ```
 
@@ -389,7 +419,7 @@ ggplot(condB, aes(sample = rt_sqrt )) +
 
 ##### I'll continue with squareroot transformation. 
 ## bind cond1 and cond2 together and keep only the needed transformation
-transformed_data <- bind_rows(condA, condB) %>% 
+transformed_data <- bind_rows(condA, condB) %>%
   select(-c(rt_z, rt_log, rt_inv))
 
 ```
@@ -427,7 +457,7 @@ by_cond %>% summarise(sd(hastighed1))
 
 ```
 Not significant results....
-
+## new numbers change them
 From the parametric t-test on the sqrt transformed data:
 *Using an independent t-test, we found that condition B ("smadrede") did not significantly increase the average speed estimate of the car, t(137.16) = -0.86, p > .05, (M condA = 9.08, M condB = 9.27, SD condA = 1.28, SD condB = 1.38)*
 
@@ -457,6 +487,7 @@ ggplot(new_df, aes(x = condition, y = hastighed1, colour = condition)) +
   ggtitle("Box Plot: Speed estimate 1 data depending on condition") +
   stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1)
 
+# try make a bar plot?
 
 #trying something
 rplot <- ggplot(transformed_data_sqrt, aes(x = condition, y = rt_sqrt, colour = condition)) +
@@ -513,7 +544,7 @@ rplot +
 new_df$glasskår <- as.factor(new_df$glasskår)
 
 #change levels
-new_df$glasskår <- relevel(new_df$glasskår, "j")
+new_df$glasskår <- relevel(new_df$glasskår, "n")
 #check levels (j og condA skal være baseline)
 levels(new_df$glasskår)
 levels(new_df$condition)
@@ -524,24 +555,24 @@ plot(m)
 summary(m)
 
 # the probability of answering yes in condition a
-boot::inv.logit(0.52609)
-# = 0.6285707
+round(boot::inv.logit(0.570545), digits = 4)
+# = 63,89%
 
 
 # the probability of answering yes in condition b
-boot::inv.logit(0.52609 - 0.07411)
-# = 0.6111099
+round(boot::inv.logit(0.570545 - 0.004819), digits = 4)
+# = 63,78%
 
 #which means that the probability of answering no in condA is 
-1-0.6285707
+1-0.6389
 # = 0.37
 
 #which means that the probability of answering no in condB is 
-1-0.6111099
-# = 0.39
+1-0.6378
+# = 0.36
 
 
-MuMIn::r.squaredGLM(m)
+#MuMIn::r.squaredGLM(m)
 
 
 ```
@@ -588,29 +619,29 @@ class(new_df$kørekort)
 new_df$kørekort <- as.factor(new_df$kørekort)
 class(new_df$kørekort)
 
-drivers_lice <- data.frame(ID = sample(letters, 142, rep = TRUE))
+drivers_lice <- data.frame(ID = sample(letters, 147, rep = TRUE))
 drivers_lice %>% 
   group_by(new_df$kørekort) %>% 
   summarise(no_rows = length(ID))
 
-round(70/142, digits = 4)
-# = 49% har kørekort generelt
+round(70/147, digits = 4)
+# = 47.62% har kørekort generelt
 
-drivers_lice_old <- data.frame(ID = sample(letters, 60, rep = TRUE))
+drivers_lice_old <- data.frame(ID = sample(letters, 64, rep = TRUE))
 drivers_lice_old %>% 
   group_by(df_old$kørekort) %>% 
   summarise(no_rows = length(ID))
 
-round(56/60, digits = 4)
-# = 93% af dem over 20 år har kørekort
+round(60/64, digits = 4)
+# = 93.75% af dem over 20 år har kørekort
 
-drivers_lice_ung <- data.frame(ID = sample(letters, 82, rep = TRUE))
+drivers_lice_ung <- data.frame(ID = sample(letters, 83, rep = TRUE))
 drivers_lice_ung %>% 
   group_by(df_ung$kørekort) %>% 
   summarise(no_rows = length(ID))
 
-round(14/82, digits = 4)
-# = 17% af dem under 20 år har kørekort
+round(15/83, digits = 4)
+# = 18.07% af dem under 20 år har kørekort
 
 ```
 
@@ -621,35 +652,35 @@ round(14/82, digits = 4)
 class(new_df$ændre_svar)
 new_df$ændre_svar <- as.factor(new_df$ændre_svar)
 
-nyt_svar <- data.frame(ID = sample(letters, 142, rep = TRUE))
+nyt_svar <- data.frame(ID = sample(letters, 147, rep = TRUE))
 nyt_svar %>% 
   group_by(new_df$ændre_svar) %>% 
   summarise(no_rows = length(ID))
 
-round(23/142, digits = 4)
-# = roughly 16% changed their answer, rated a second time
+round(23/147, digits = 4)
+# = 15.65% changed their answer, rated a second time
 
 # calculating the number of YOUNG people who changed their answers
 class(df_ung$ændre_svar)
 
-nyt_svar_ung <- data.frame(ID = sample(letters, 82, rep = TRUE))
+nyt_svar_ung <- data.frame(ID = sample(letters, 83, rep = TRUE))
 nyt_svar_ung %>% 
   group_by(df_ung$ændre_svar) %>% 
   summarise(no_rows = length(ID))
 
-round(17/82, digits = 4)
-# = roughly 21%
+round(17/83, digits = 4)
+# = 20.48% 
 
 # calculating the number of OLD people who changed their answers
 class(df_old$ændre_svar)
 
-nyt_svar_old <- data.frame(ID = sample(letters, 60, rep = TRUE))
+nyt_svar_old <- data.frame(ID = sample(letters, 64, rep = TRUE))
 nyt_svar_old %>% 
   group_by(df_old$ændre_svar) %>% 
   summarise(no_rows = length(ID))
 
-round(6/60, digits = 4)
-# = roughly 10%
+round(6/64, digits = 4)
+# = 9.38%
 
 
 ```
@@ -660,7 +691,7 @@ remember assumptions!!
 ```{r ændre svar logistic regression (multiple)}
 
 levels(new_df$ændre_svar)
-new_df$ændre_svar <- relevel(new_df$ændre_svar, "j")
+new_df$ændre_svar <- relevel(new_df$ændre_svar, "n")
 
 new_df$under_20 <- new_df$alder < 20
 class(new_df$under_20)
@@ -677,13 +708,12 @@ m_svar <- glm(ændre_svar ~ under_20, family = binomial, data = new_df)
 
 summary(m_svar)
 
-ung_ja <- boot::inv.logit(1.3412)
-# = 80%
+boot::inv.logit(-1.3564)
+# = 20.48% significant chance of changing one's answer
 
-old_ja <- boot::inv.logit(1.3412 + 0.8561)
-# = 90%
+boot::inv.logit(-1.3564 - 0.9122)
+# = 9.38%, significant at p<0.1??
 
-# what???
 
 ```
 
