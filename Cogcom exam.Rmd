@@ -212,7 +212,7 @@ write.csv(new_df,"data_done.csv")
 ```
 
 
-```{r JULIE, START HER}
+```{r JULIE START HER}
 
 new_df <- read_csv("data_done.csv")
 
@@ -246,6 +246,10 @@ a1_ung
 a2_ung
 b1_ung
 b2_ung
+
+mean(new_df$alder)
+sd(new_df$alder)
+summary(new_df$køn == "Kvinde")
 
 #ungroup()
 #df_age <- new_df %>% group_by(new_df$alder >=20 | new_df$alder < 20)
@@ -548,6 +552,7 @@ new_df$glasskår <- relevel(new_df$glasskår, "n")
 #check levels (j og condA skal være baseline)
 levels(new_df$glasskår)
 levels(new_df$condition)
+new_df$condition <- relevel(new_df$condition, "A")
 
 #GLM model
 m <- glm(glasskår ~ condition, new_df, family = binomial)
@@ -589,6 +594,10 @@ Results of the binary logistic regression indicated that there was a significant
 df_old <- new_df %>% subset(new_df$alder >= 20)
 df_ung <- new_df %>% subset(new_df$alder < 20)
 
+# getting the gender distribution of each of these groups
+summary(df_old$køn == "Kvinde")
+summary(df_ung$køn == "Kvinde")
+
 #changing classes
 df_old$computertimer <- as.numeric(df_old$computertimer)
 df_old$køretimer <- as.numeric(df_old$køretimer)
@@ -609,6 +618,7 @@ class(df_ung$køretimer)
 m_ung_com <- round(mean(df_ung$computertimer), digits = 2)
 m_ung_kør <- round(mean(df_ung$køretimer), digits = 2)
 
+sd(df_ung$computertimer)
 
 ## should we make a t-tesT??? then we could say that the "adults significanlty drives more" etc etc but to support what? 
 
@@ -705,6 +715,8 @@ levels(new_df$under_20)
 
 
 m_svar <- glm(ændre_svar ~ under_20, family = binomial, data = new_df)
+#m_svar <- glm(ændre_svar ~ under_20, family = binomial, data = no_outliers)
+
 
 summary(m_svar)
 
@@ -714,11 +726,115 @@ boot::inv.logit(-1.3564)
 boot::inv.logit(-1.3564 - 0.9122)
 # = 9.38%, significant at p<0.1??
 
+round(boot::inv.logit(-2.2687), digits = 4)
+
 
 ```
 
 Her er intercept = at man er under 20 år gammel og har svaret ja på spørgsmålet om hvorvidt man vil ændre sit svar
 Something is wrong though....
+
+```{r ændre svar - coherent eller ej}
+
+df_nytsvar <- filter(new_df, new_df$ID, new_df$alder, new_df$køn, new_df$condition, new_df$estimate, new_df$ændre_svar, new_df$hastighed1, new_df$hastighed2)
+
+class(new_df$ID)
+class(new_df$alder)
+new_df$alder <- as.numeric(new_df$alder)
+class(new_df$køn)
+new_df$køn <- as.factor(new_df$køn)
+class(new_df$condition)
+class(new_df$estimate)
+new_df$estimate <- as.factor(new_df$estimate)
+class(new_df$ændre_svar)
+class(new_df$hastighed1)
+class(new_df$hastighed2)
+
+summary(new_df$ændre_svar == "j")
+
+```
+
+
+```{r t-test between computer hours and driving hours}
+
+ggplot(new_df, aes(under_20, computertimer, fill = under_20)) +
+  theme_minimal() +
+  labs(x = "Age below 20 (TRUE) or equals to and above 20 years (FALSE)", y = "Average amount of hours spent playing computer etc weekly") +
+  geom_boxplot(width = 0.5) +
+  ggtitle("Average amount of hours spent playing computer etc weekly depending on age") +
+  stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1) + coord_cartesian(ylim = c(0,32))
+
+ggplot(new_df, aes(under_20, køretimer, fill = under_20)) +
+  theme_minimal() +
+  labs(x = "Age below 20 (TRUE) or equalt to or above 20 years (FALSE)", y = "Average amount of hours spent driving weekly per participant") +
+  geom_boxplot(width = 0.5) +
+  ggtitle("Average hours spent driving weekly depending on age") +
+  stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1) + coord_cartesian(ylim = c(0,17))
+
+### checking assumptions
+
+new_df$rt_z = (new_df$hastighed1 -mean(new_df$hastighed1))/sd(new_df$hastighed1)
+
+#filter data 
+no_outliers = new_df %>% filter(rt_z > -3 & rt_z < 3) 
+
+#subsetting data
+condA <- no_outliers %>% filter(condition == "A")
+condB <- no_outliers %>% filter(condition == "B")
+
+############ Checking Assumptions for Condition A
+#histogram
+ggplot(condA, aes(x = condA$hastighed1)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.4) +
+  ggtitle("Distribution of speed estimate1 in condition A") +
+  stat_function(fun = dnorm, args = list(mean = mean(condA$hastighed1, na.rm = TRUE), sd = sd(condA$hastighed1, na.rm = TRUE)), colour = "red", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(condA, aes(sample = hastighed1)) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for speed estimate 1 data in Condition A") +
+  theme_minimal()
+
+
+############ Checking Assumptions for Condition B
+#histogram
+ggplot(condB, aes(x = condB$hastighed1)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.4) +
+  ggtitle("Distribution of speed estimate1 in condition B") +
+  stat_function(fun = dnorm, args = list(mean = mean(condB$hastighed1, na.rm = TRUE), sd = sd(condB$hastighed1, na.rm = TRUE)), colour = "blue", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(condB, aes(sample = hastighed1)) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for speed estimate 1 data in Condition A") +
+  theme_minimal()
+
+
+#stat.desc
+round(pastecs::stat.desc(cbind(df_ung$computertimer, df_old$computertimer), basic = FALSE, norm = TRUE), digits = 2)
+
+#non-parametric t-test (robust t-test)
+WRS2::yuen(computertimer ~ under_20, data = new_df)
+sd(new_df$computertimer)
+
+#non-parametric t-test (robust t-test)
+WRS2::yuen(køretimer ~ under_20, data = new_df)
+sd(new_df$køretimer)
+
+
+
+new_df$under_20
+
+#df_age <- new_df %>% group_by(new_df$alder >=20 | new_df$alder < 20)
+
+```
+Performing a robust t-test it was found that there is a significant difference between the average hours spent playing computer or other gaming consoles weekly between people younger than 20 years of age and people equals to or older than 20 years of age, t(77.74) = 3.50, p<.001 (M_young = 4.19, SD = 7.38, M_old = 2.38, SD = 5.48). 
+
+Likewise when performing a robust t-test on the difference between the agerage number of hours spent driving a vehicle weekly there was found to be a significant difference between the two groups of younger than 20 years of age and older than or equals to 20 years of age, t(43.32) = 4.51, p<0.001 (M_young = 1.42, SD = 5.31, M_old = 3.82, SD = 3.88)
 
 ```{r cut outs}
 #cond_a <- new_df$condition == "A"
