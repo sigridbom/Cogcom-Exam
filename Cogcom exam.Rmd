@@ -16,202 +16,6 @@ pacman::p_load(tidyverse, MuMIn, pastecs, WRS2, data.table, magrittr, dplyr, ggp
 ```
 
 
-
-```{r importing data, echo=FALSE}
-
-files <- list.files(path = "data",     #PUT THE NAME OF YOUR FOLDER WITH DATA in the quotes, it also might need '/' in the end, experiment with it :)
-                    pattern = ".csv",  #everything that contains '.csv' in its name will be listed
-                    full.names = T)    #makes it include directory path, so instead of 'logfile_1.csv' it will be 'data/logfile_1.csv')
-
-#read all the files into a tibble (a fancy df)
-#data1 <- lapply(files, read_csv) %>%  # apply read_csv() to every element in files list and send the resulting tibbles to the next line
-  #bind_rows()  #bind rows from resulting tibbles together so you have one dataset with all of your data
-
-data <- lapply(files, read_csv) %>% plyr::rbind.fill()
-
-```
-
-
-```{r PETERS KODE DO NOT TOUCH}
-
-df <- data.frame(participant = data$participant, køn = data$Køn, alder = data$Alder, computertimer = data$`Hvor mange timer computer/xbox/andet spiller De om ugen?`, køretimer = data$`Hvor mange timer om ugen kører De cirka?`, kørekort = data$`Har De kørekort? (ja/nej)`, condition = data$Condition, estimate = data$Estimate, date = data$date, ratespeed1 = data$ratespeed1.response, ratespeed1_rt = data$ratespeed1.rt, ændre_svar = data$key_resp_4.keys, ændre_svar_rt = data$key_resp_4.rt, ratespeed2 = data$ratespeed2.response, ratespeed2_rt = data$ratespeed2.rt, glasskår = data$key_resp_3.keys, glasskår_rt = data$key_resp_3.rt)
-
-df$ratespeed2[is.na(df$ratespeed2)] = 0
-df$ratespeed2_rt[is.na(df$ratespeed2_rt)] = 0
-
-colnames = c("partipant", "køn", "alder", "computertimer", "køretimer", "kørekort", "condition", "estimate", "date", "ratespeed1", "ratespeed1_rt", "ændre_svar", "ændre_svar_rt", "ratespeed2", "ratespeed2_rt", "glasskår", "glasskår_rt")
-
-#Make new dataframe
-new_df = data.frame(matrix(ncol = ncol(df), nrow = length(levels(df$data.participant))))
-colnames(new_df) = colnames
-
-#Go through each participant separately
-for (participant_id in levels(df$participant)) {
-  #Make a temporary dataframe only with that participant
-  temp_df = filter(df, participant == participant_id)
-  
-  #Make a new row to append to the new dataframe
-  new_row = data.frame(matrix(nrow = 1, ncol = ncol(new_df)))
-  colnames(new_row) = colnames
-  
-  #Go through each column in the dataframe
-  for (column in 1:ncol(temp_df)) {
-    #And also each row
-    for (row in 1:nrow(temp_df)) {
-      
-      #If the data in that row and column is not NA
-      if (is.na(temp_df[row,column]) == FALSE) {
-        #Save it to the new row
-        new_row[1,column] = as.character(temp_df[row,column])
-      }
-    }
-  }
-  #Append the new row to the new dataframe
-  new_df = rbind(new_df, new_row)
-  }
-
-```
-
-```{r cleaning part 1}
-
-#alder (2 rettelser)
-new_df[63, 3] = 15
-new_df[98, 3] = 16
-
-#computertimer (11 rettelser)
-new_df[8, 4] = 7
-new_df[26, 4] = 0
-new_df[27, 4] = 0
-new_df[33, 4] = 2
-new_df[35, 4] = 6
-new_df[42, 4] = 7
-new_df[44, 4] = 0.5
-new_df[48, 4] = 0
-new_df[52, 4] = 5
-new_df[63, 4] = 6
-new_df[97, 4] = 1
-
-#køretimer (9 rettelser)
-new_df[12,5] = 0 
-new_df[27,5] = 0
-new_df[29, 5] = 0.5
-new_df[47,5] = 1.5
-new_df[66, 5] = 0
-new_df[68, 5] = 0
-new_df[76,5] = 0
-new_df[97,5] = 0
-new_df[117,5] = 6.5
-
-###### NY JULIE RET 
-###### computertimer
-# participant "Jesper"
-new_df[134, 4] = 0.5
-# participant "Miss Sunshine"
-new_df[145, 4] = 0
-# participant "Nanna"
-new_df[146, 4] = 0.5
-
-##### NY JULIE RET
-##### køretimer
-# participant "CRE95-1-AFAHQQE"
-new_df[122,5] = 6.5
-# participant "Faust"
-new_df[129,5] = 0.5
-
-###### Både køretimer og computertimer
-# participant "Allan Mose"
-new_df[116, 4] = 20
-new_df[116, 5] = 2
-# participant "bananasplit med softice"
-new_df[120, 4] = 0
-new_df[120, 5] = 0
-# participant "fluy"
-new_df[130, 4] = 0
-new_df[130, 5] = 1.5
-# participant "KapperDaRapper"
-new_df[138, 4] = 4
-new_df[138, 5] = 1.5
-# Particpant "perfekt"
-new_df[150, 4] = 0
-new_df[150, 5] = 8
-# participant "Sugar"
-new_df[156, 4] = 0
-new_df[156, 5] = 1
-# participant "university professor
-new_df[157, 4] = 0
-new_df[157, 5] = 8
-
-
-# particpant "emilie"
-new_df[128, 2] = "Kvinde"
-new_df[128, 6] = "ja"
-new_df[128, 5] = 0.5
-
-# particpant "julie"
-new_df[137, 2] = "Kvinde"
-new_df[137, 6] = "nej"
-
-# participant "mette"
-new_df[144, 2] = "Kvinde"
-new_df[144, 6] = "ja"
-
-# participant "peter"
-new_df[151, 2] = "Mand"
-new_df[151, 6] = "ja"
-
-# participant "poul"
-new_df[152, 2] = "Mand"
-new_df[152, 6] = "ja"
-
-#kørekort
-new_df[102,6] = "nej"
-
-
-# to lower case kørekort
-new_df$kørekort <- tolower(new_df$kørekort)
-
-# removing person with no age and NA's (8 rækker)
-new_df <- new_df[-c(13, 34, 60, 71, 83, 98, 104, 114, #participants with numbers as ID
-                    119, 125, 136), ] # participants with names as ID
-# Participants med navne, der skal fjernes: 
-# "Banan", "Duc7", "Julemor", 
-
-# "Banan" kunne ikke se rating skalaen og vidste derfor ikke hvad han selv svarede
-# "Julemor" oplyste bagefter at hun kendte eksperimentet i forvejen
-# "Duc7" har ikke lavet eksperimentet færdigt
-
-#creating a new column with row numbers
-new_df$ID <- seq.int(nrow(new_df))
-
-```
-
-
-```{r cleaning part 2}
-
-#creating a new column with rating speed
-
-class(new_df$ratespeed1)
-new_df$ratespeed1 <- as.numeric(new_df$ratespeed1)
-new_df$ratespeed2 <- as.numeric(new_df$ratespeed2)
-
-new_df$hastighed1 <- new_df$ratespeed1*25
-new_df$hastighed2 <- new_df$ratespeed2*25
-
-
-```
-
-DATA FRAME LOOKS GOOD NOW
-
-
-```{r gem datasæt}
-
-#når al data er indsamlet - husk at gemme det færdige datasæt her, og loade det igen - evt lav et nyt r-markdown? 
-
-write.csv(new_df,"data_done.csv")
-
-```
-
-
 ```{r JULIE START HER}
 
 new_df <- read_csv("data_done.csv")
@@ -247,6 +51,7 @@ a2_ung
 b1_ung
 b2_ung
 
+new_df$alder <- as.numeric(new_df$alder)
 mean(new_df$alder)
 sd(new_df$alder)
 summary(new_df$køn == "Kvinde")
@@ -257,7 +62,7 @@ summary(new_df$køn == "Kvinde")
 
 ```
 
-```{r mean speed estimate according to condition}
+```{r Hyp 1a mean speed estimate according to condition}
 
 #changing class to be able to use group_by
 new_df$condition <- as.factor(new_df$condition)
@@ -271,9 +76,7 @@ by_cond %>% summarise(mean(hastighed1))
 
 ```
 
-
-
-```{r visualizing the data}
+```{r visualizing the data in general - make better}
 
 ggplot(new_df, aes(hastighed1, ID)) + geom_point() + geom_smooth(method = lm)
 
@@ -283,8 +86,7 @@ ggplot(new_df, aes(condition, hastighed1)) + geom_point() + geom_smooth(method =
 ```
 
 
-
-```{r t-test assumptions hastighed/condition}
+```{r Hyp1a - t-test assumptions hastighed/condition}
 
 #from class 6 notes filled
 
@@ -339,7 +141,7 @@ round(pastecs::stat.desc(cbind(condA$hastighed1, condB$hastighed1), basic = FALS
 Conclusion about the data being normally distributed or not:
 Visually the data do not look normally distributed in any way, however it looks a lot better numerically. I will try to transform the data. 
 
-```{r transforming the data}
+```{r Hyp1a - transforming the data}
 
 #logging the data for both conditions
 condA <- condA %>% mutate(rt_log = log(condA$hastighed1), 
@@ -357,7 +159,10 @@ round(pastecs::stat.desc(cbind(condA$rt_log, condA$rt_sqrt, condA$rt_inv, condB$
 
 
 ```
-```{r visual inspection of the transformed data}
+
+Visualizing the transformed data
+
+```{r Hyp1a visual inspection of the transformed data}
 
 #Check assumptions again
 ############ Checking Assumptions for Condition A (best candidates: log and sqrt)
@@ -432,7 +237,7 @@ The data are still not normally distributed. I will therefore try different thin
 - a parametric t-test on the transformed data
 - a non-parametric independent t-test (between subject design)
 
-```{r t-test on hastighed1 and condition}
+```{r Hyp1a - t-test on hastighed1 and condition}
 
 # parametric tests on the transformed data
 t.test(transformed_data$rt_sqrt ~ transformed_data_sqrt$condition)
@@ -442,7 +247,6 @@ condA %>% summarise(sd(rt_sqrt))
 condB %>% summarise(sd(rt_sqrt))
 
 # non-parametric test on non-transformed data
-WRS2::yuen(hastighed1 ~ condition, data = new_df)
 
 ##### calculating the mean of estimating speed1 according to condition on the non-transformed data
 #changing class to be able to use group_by
@@ -462,15 +266,13 @@ by_cond %>% summarise(sd(hastighed1))
 ```
 Not significant results....
 ## new numbers change them
-From the parametric t-test on the sqrt transformed data:
-*Using an independent t-test, we found that condition B ("smadrede") did not significantly increase the average speed estimate of the car, t(137.16) = -0.86, p > .05, (M condA = 9.08, M condB = 9.27, SD condA = 1.28, SD condB = 1.38)*
+From the parametric t-test on the sqrt transformed data: do not use!
+Using an independent t-test, we found that condition B ("smadrede") did not significantly increase the average speed estimate of the car, t(x) = x, p x 5, (M condA = x, M condB = x, SD condA = x, SD condB = x)
 
 From the non-parametric t-test on the non-transformed data:
-*Using an independent t-test, we found that condition B ("smadrede") did not significantly increase the average speed estimate of the car, t(83.75) = 0.57, p > .05, (M condA = 83.97, M condB = 90.59, SD condA = 22.90, SD condB = 30.69)*
+*Using a robust independent t-test, we found that condition B ("smadrede") did not significantly increase the average speed estimate of the car, t(79.13) = 0.7293, p >.05 (p = .47), (M condA = 84.31, M condB = 90.77, SD condA = 22.68, SD condB = 29.71)*
 
-#### Which one should we continue with when making graphs? 
-
-```{r visualizing the t-tests}
+```{r Hyp1a - visualizing the t-tests}
 
 transformed_data$condition <- as.factor(transformed_data$condition)
 
@@ -482,16 +284,17 @@ ggplot(transformed_data, aes(x = condition, y = rt_sqrt, colour = condition)) +
   stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1)
 
 
-# trying the non-transformed data just to see
+# trying the non-transformed data THIS ONE IS USED
 new_df$condition <- as.factor(new_df$condition)
 ggplot(new_df, aes(x = condition, y = hastighed1, colour = condition)) +
   theme_minimal() +
-  labs(x = "Condition", y = "Speed estimate 1") +
+  labs(x = "Condition (A = 'hit', B = 'smashed')", y = "Speed estimate in km/h") +
   geom_boxplot(width = 0.5) +
-  ggtitle("Box Plot: Speed estimate 1 data depending on condition") +
-  stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1)
+  ggtitle("Speed estimate according to condition") +
+  stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1) + theme(legend.position = 'none')
+  
 
-# try make a bar plot?
+
 
 #trying something
 rplot <- ggplot(transformed_data_sqrt, aes(x = condition, y = rt_sqrt, colour = condition)) +
@@ -542,7 +345,7 @@ rplot +
   i.e. 49 * 1 / 0.49 = 100
   We have more than 100 observations in our data set, so this assumption is met as well.
 
-```{r glas spørgsmål - logistic regression}
+```{r Hyp1b - glas spørgsmål - logistic regression}
 
 # see class 10 notes filled
 new_df$glasskår <- as.factor(new_df$glasskår)
@@ -588,7 +391,7 @@ Results of the binary logistic regression indicated that there was a significant
 
 140 degrees of freedom = 188.59???
 
-```{r køretimer vs computertimer + kørekort}
+```{r parti - køretimer vs computertimer + kørekort}
 
 #making new data frames separating age above and younger than 20 years
 df_old <- new_df %>% subset(new_df$alder >= 20)
@@ -629,68 +432,78 @@ class(new_df$kørekort)
 new_df$kørekort <- as.factor(new_df$kørekort)
 class(new_df$kørekort)
 
-drivers_lice <- data.frame(ID = sample(letters, 147, rep = TRUE))
+drivers_lice <- data.frame(ID = sample(letters, 144, rep = TRUE))
 drivers_lice %>% 
   group_by(new_df$kørekort) %>% 
   summarise(no_rows = length(ID))
 
-round(70/147, digits = 4)
-# = 47.62% har kørekort generelt
+round(74/144, digits = 4)
+# = 51.39% har kørekort generelt
 
-drivers_lice_old <- data.frame(ID = sample(letters, 64, rep = TRUE))
+drivers_lice_old <- data.frame(ID = sample(letters, 63, rep = TRUE))
 drivers_lice_old %>% 
   group_by(df_old$kørekort) %>% 
   summarise(no_rows = length(ID))
 
-round(60/64, digits = 4)
-# = 93.75% af dem over 20 år har kørekort
+round(59/63, digits = 4)
+# = 93.65% af dem over 20 år har kørekort
 
-drivers_lice_ung <- data.frame(ID = sample(letters, 83, rep = TRUE))
+drivers_lice_ung <- data.frame(ID = sample(letters, 81, rep = TRUE))
 drivers_lice_ung %>% 
   group_by(df_ung$kørekort) %>% 
   summarise(no_rows = length(ID))
 
-round(15/83, digits = 4)
-# = 18.07% af dem under 20 år har kørekort
+round(15/81, digits = 4)
+# = 18.52% af dem under 20 år har kørekort
 
+summary(df_ung$køn == "Kvinde")
+summary(df_old$køn == "Kvinde")
 ```
 
 
-```{r ændre svar}
+```{r Hyp2 ændre svar percentage}
 
 # calculating the number of people who changed their answers in general
 class(new_df$ændre_svar)
 new_df$ændre_svar <- as.factor(new_df$ændre_svar)
 
-nyt_svar <- data.frame(ID = sample(letters, 147, rep = TRUE))
+nyt_svar <- data.frame(ID = sample(letters, 144, rep = TRUE))
 nyt_svar %>% 
   group_by(new_df$ændre_svar) %>% 
   summarise(no_rows = length(ID))
 
-round(23/147, digits = 4)
-# = 15.65% changed their answer, rated a second time
+round(21/144, digits = 4)
+# = 14.58% changed their answer, rated a second time
 
 # calculating the number of YOUNG people who changed their answers
 class(df_ung$ændre_svar)
 
-nyt_svar_ung <- data.frame(ID = sample(letters, 83, rep = TRUE))
+nyt_svar_ung <- data.frame(ID = sample(letters, 81, rep = TRUE))
 nyt_svar_ung %>% 
   group_by(df_ung$ændre_svar) %>% 
   summarise(no_rows = length(ID))
 
-round(17/83, digits = 4)
-# = 20.48% 
+round(16/81, digits = 4)
+# = 19.75% 
 
 # calculating the number of OLD people who changed their answers
 class(df_old$ændre_svar)
 
-nyt_svar_old <- data.frame(ID = sample(letters, 64, rep = TRUE))
+nyt_svar_old <- data.frame(ID = sample(letters, 63, rep = TRUE))
 nyt_svar_old %>% 
   group_by(df_old$ændre_svar) %>% 
   summarise(no_rows = length(ID))
 
-round(6/64, digits = 4)
-# = 9.38%
+round(5/63, digits = 4)
+# = 7.94%
+
+# the number of people in each age group and their gender who changed their answer
+summary(df_svar$køn == "Kvinde" & df_svar$under_20 == TRUE)
+summary(df_svar$køn == "Mand" & df_svar$under_20 == TRUE)
+
+summary(df_svar$køn == "Kvinde" & df_svar$under_20 == FALSE)
+summary(df_svar$køn == "Mand" & df_svar$under_20 == FALSE)
+
 
 
 ```
@@ -698,8 +511,9 @@ Now testing if age significantly predicts if people will change their answer..
 
 remember assumptions!!
 
-```{r ændre svar logistic regression (multiple)}
+```{r Hyp 2 ændre svar logistic regression (multiple)}
 
+new_df$ændre_svar <- as.factor(new_df$ændre_svar)
 levels(new_df$ændre_svar)
 new_df$ændre_svar <- relevel(new_df$ændre_svar, "n")
 
@@ -717,124 +531,254 @@ levels(new_df$under_20)
 m_svar <- glm(ændre_svar ~ under_20, family = binomial, data = new_df)
 #m_svar <- glm(ændre_svar ~ under_20, family = binomial, data = no_outliers)
 
+plot(m_svar)
+summary(m_svar) 
 
-summary(m_svar)
+boot::inv.logit(-1.4018)
+# = 19.75% significant chance of changing one's answer if one is below 20 y p<.001 (p=6.13e-07)
 
-boot::inv.logit(-1.3564)
-# = 20.48% significant chance of changing one's answer
 
-boot::inv.logit(-1.3564 - 0.9122)
-# = 9.38%, significant at p<0.1??
-
-round(boot::inv.logit(-2.2687), digits = 4)
-
+boot::inv.logit(-1.4018 - 1.0492)
+# = 7.94%, p>.05 
 
 ```
+A significant effect of the younger group was found, beta = -1.4018, SE = 0.28, z-value = -5.02, p<.001 (p=5.09e-07), while the other age group only came close to being significant, beta = -1.0492, SE = 0.54, z-value = -1.93, p>.05 (p = 0.0534).
 
-Her er intercept = at man er under 20 år gammel og har svaret ja på spørgsmålet om hvorvidt man vil ændre sit svar
-Something is wrong though....
 
-```{r ændre svar - coherent eller ej}
+```{r Hyp 2 det nye svar - forskel i procent}
 
-df_nytsvar <- filter(new_df, new_df$ID, new_df$alder, new_df$køn, new_df$condition, new_df$estimate, new_df$ændre_svar, new_df$hastighed1, new_df$hastighed2)
-
-class(new_df$ID)
-class(new_df$alder)
+#changing classes
 new_df$alder <- as.numeric(new_df$alder)
-class(new_df$køn)
 new_df$køn <- as.factor(new_df$køn)
-class(new_df$condition)
-class(new_df$estimate)
 new_df$estimate <- as.factor(new_df$estimate)
-class(new_df$ændre_svar)
-class(new_df$hastighed1)
-class(new_df$hastighed2)
 
+#calculating change in percentage
+new_df$speed_change <- ((new_df$hastighed1-new_df$hastighed2)/new_df$hastighed1)*100
+
+# how many observations do we have with a changed answer
 summary(new_df$ændre_svar == "j")
+# 21 observations
+
+#making a new dataframe with only these observations
+df_svar <- subset(new_df, new_df$ændre_svar == "j")
+
+#making a new column where everything is in positive numbers
+df_svar$speed_change_plus <- sqrt((df_svar$speed_change)^2)
+
+#calculating the mean change no matter which direction they were pushed in
+round(mean(df_svar$speed_change_plus), digits = 2)
+#29.16 km/h
+round(sd(df_svar$speed_change_plus), digits = 2)
+
+# group the data frame into estimate 1 (hurtigere) and estimate 2 (langsommere)
+df_svar_group <- group_by(df_svar, estimate)
+df_svar_group_ung <- subset(df_svar_group, df_svar_gender$under_20 == "TRUE")
+
+# calculate the means once again for the two estimates
+df_svar_group %>% summarise(round(mean(speed_change_plus), digits = 2))
+# calculating the standard deviation for the two estimates
+df_svar_group %>% summarise(round(sd(speed_change_plus), digits = 2))
+
+# calculating if there was a significant difference between men and women
+df_svar_gender <- df_svar %>% group_by(df_svar$køn)
+df_svar_gender %>% summarise(round(mean(speed_change_plus), digits = 2))
+df_svar_gender %>% summarise(round(sd(speed_change_plus), digits = 2))
+
+WRS2::yuen(speed_change_plus ~ køn, data = df_svar_gender)
+
+# trying the same with the young age group 
+df_svar_gender_ung <- subset(df_svar_gender, df_svar_gender$under_20 == "TRUE")
+
+df_svar_gender_ung %>% summarise(round(mean(speed_change_plus), digits = 2))
+df_svar_gender_ung %>% summarise(round(sd(speed_change_plus), digits = 2))
+
+WRS2::yuen(speed_change_plus ~ køn, data = df_svar_gender_ung)
+
+# trying the same with the old age group 
+df_svar_gender_old <- subset(df_svar_gender, df_svar_gender$under_20 == "FALSE")
+
+df_svar_gender_old %>% summarise(round(mean(speed_change_plus), digits = 2))
+df_svar_gender_old %>% summarise(round(sd(speed_change_plus), digits = 2))
+
+WRS2::yuen(speed_change_plus ~ køn, data = df_svar_gender_old)
+
+
+# visualizing the data ## work in progress
+
+ggplot(df_svar_gender_ung, aes(køn, speed_change_plus, fill = køn)) +
+  theme_minimal() + geom_boxplot(width = 0.5) + stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1) + coord_cartesian(ylim = c(0,50)) + labs(x = "Gender", y = "Percentage change from first to second estimate of speed", title = "Percentage change in speed estimae according to gender (younger than 20 y)") + scale_fill_discrete(name = "Gender", labels = c("Women", "Men"))
+
+# plot hvor det går fra estimate 1 til estimate 2 i gennemsnit ift køn og kun den unge gruppe
+#ggplot(df_svar_group_ung, aes(køn, speed_change_plus, fill = køn)) + geom_quantile()
+#+ theme(legend.position = 'none')
 
 ```
+The women who chose to change their answer changed it on average by 18.61 percent, where as the men changed it by 38.75%. Testing if this is signifcant by making a robust t-test.
 
+There was found no significant difference between the mean change of speed estimate for men and women in general, t(10.11) = 1.41, p>.05 (p = .19), (M women = 18.61, SD women = 10.75 , M men = 38.75, SD = 34.63)
 
-```{r t-test between computer hours and driving hours}
+*There was found a significant difference between the mean change of speed estimate for men and women in the age group below 20 years of age, t(10) = 2.25, p<.05 (p = 0.04824) (M women = 14.87, M men = 31.23, SD women = 10.53, SD men = 17.41)*
 
-ggplot(new_df, aes(under_20, computertimer, fill = under_20)) +
-  theme_minimal() +
-  labs(x = "Age below 20 (TRUE) or equals to and above 20 years (FALSE)", y = "Average amount of hours spent playing computer etc weekly") +
-  geom_boxplot(width = 0.5) +
-  ggtitle("Average amount of hours spent playing computer etc weekly depending on age") +
-  stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1) + coord_cartesian(ylim = c(0,32))
+There was found no significant difference between the mean change of speed estimate for men in women in the older age group (equals to or above 20 years of age), t(1) = 0.78, p>.05 (p = .58) (M women = 27.35, M men = 72.57, SD women = 4.97, SD men = 82.28)
 
-ggplot(new_df, aes(under_20, køretimer, fill = under_20)) +
-  theme_minimal() +
-  labs(x = "Age below 20 (TRUE) or equalt to or above 20 years (FALSE)", y = "Average amount of hours spent driving weekly per participant") +
-  geom_boxplot(width = 0.5) +
-  ggtitle("Average hours spent driving weekly depending on age") +
-  stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1) + coord_cartesian(ylim = c(0,17))
+```{r parti - t-test between computer hours and driving hours + assumptions}
 
 ### checking assumptions
+new_df$computertimer <- as.numeric(new_df$computertimer)
+new_df$køretimer <- as.numeric(new_df$køretimer)
 
-new_df$rt_z = (new_df$hastighed1 -mean(new_df$hastighed1))/sd(new_df$hastighed1)
+# removing outliers
+new_df$ct_z = (new_df$computertimer - mean(new_df$computertimer))/sd(new_df$computertimer)
+new_df$kt_z = (new_df$køretimer - mean(new_df$køretimer))/sd(new_df$køretimer)
 
 #filter data 
-no_outliers = new_df %>% filter(rt_z > -3 & rt_z < 3) 
+no_outliers_ct = new_df %>% filter(ct_z > -3 & ct_z < 3) 
+no_outliers_kt = new_df %>% filter(kt_z > -3 & kt_z < 3) 
 
 #subsetting data
-condA <- no_outliers %>% filter(condition == "A")
-condB <- no_outliers %>% filter(condition == "B")
+df_ung_no_ct <- no_outliers_ct %>% filter(under_20 == "TRUE")
+df_ung_no_kt <- no_outliers_kt %>% filter(under_20 == "TRUE")
 
-############ Checking Assumptions for Condition A
+df_old_no_ct <- no_outliers_ct %>% filter(under_20 == "FALSE")
+df_old_no_kt <- no_outliers_ct %>% filter(under_20 == "FALSE")
+
+############ Checking Assumptions for df_ung_no_ct (young group computertimer)
 #histogram
-ggplot(condA, aes(x = condA$hastighed1)) +
+ggplot(df_ung_no_ct, aes(x = df_ung_no_ct$computertimer)) +
   geom_histogram(aes(y = ..density..), binwidth = 0.4) +
-  ggtitle("Distribution of speed estimate1 in condition A") +
-  stat_function(fun = dnorm, args = list(mean = mean(condA$hastighed1, na.rm = TRUE), sd = sd(condA$hastighed1, na.rm = TRUE)), colour = "red", size = 1) +
+  ggtitle("Distribution of computer hours in young group") +
+  stat_function(fun = dnorm, args = list(mean = mean(df_ung_no_ct$computertimer, na.rm = TRUE), sd = sd(df_ung_no_ct$computertimer, na.rm = TRUE)), colour = "red", size = 1) +
   theme_minimal()
 
 #qqplot
-ggplot(condA, aes(sample = hastighed1)) +
+ggplot(df_ung_no_ct, aes(sample = df_ung_no_ct$computertimer)) +
   stat_qq() +
   stat_qq_line(colour = 'red') +
-  ggtitle("Qqplot for speed estimate 1 data in Condition A") +
+  ggtitle("Qqplot for computer hours in young group") +
   theme_minimal()
 
 
-############ Checking Assumptions for Condition B
+############ Checking Assumptions for df_ung_no_kt (young group køretimer)
 #histogram
-ggplot(condB, aes(x = condB$hastighed1)) +
+ggplot(df_ung_no_kt, aes(x = df_ung_no_kt$køretimer)) +
   geom_histogram(aes(y = ..density..), binwidth = 0.4) +
-  ggtitle("Distribution of speed estimate1 in condition B") +
-  stat_function(fun = dnorm, args = list(mean = mean(condB$hastighed1, na.rm = TRUE), sd = sd(condB$hastighed1, na.rm = TRUE)), colour = "blue", size = 1) +
+  ggtitle("Distribution of driving hours young group") +
+  stat_function(fun = dnorm, args = list(mean = mean(df_ung_no_kt$køretimer, na.rm = TRUE), sd = sd(df_ung_no_kt$køretimer, na.rm = TRUE)), colour = "blue", size = 1) +
   theme_minimal()
 
 #qqplot
-ggplot(condB, aes(sample = hastighed1)) +
+ggplot( df_ung_no_kt, aes(sample = køretimer)) +
   stat_qq() +
   stat_qq_line(colour = 'red') +
-  ggtitle("Qqplot for speed estimate 1 data in Condition A") +
+  ggtitle("Qqplot for driving hours in young group") +
   theme_minimal()
 
+
+############ Checking Assumptions for df_old_no_ct (old group computertimer)
+#histogram
+ggplot(df_old_no_ct, aes(x = df_old_no_ct$computertimer)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.4) +
+  ggtitle("Distribution of computer hours old group") +
+  stat_function(fun = dnorm, args = list(mean = mean(df_old_no_ct$computertimer, na.rm = TRUE), sd = sd(df_old_no_ct$computertimer, na.rm = TRUE)), colour = "blue", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(df_old_no_ct, aes(sample = computertimer)) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for computer hours old group") +
+  theme_minimal()
+
+
+############ Checking Assumptions for df_old_no_kt (old group køretimer)
+#histogram
+ggplot(df_old_no_kt, aes(x = df_old_no_kt$køretimer)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.4) +
+  ggtitle("Distribution of driving hours old group") +
+  stat_function(fun = dnorm, args = list(mean = mean(df_old_no_kt$køretimer, na.rm = TRUE), sd = sd(df_old_no_kt$køretimer, na.rm = TRUE)), colour = "blue", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot( df_old_no_kt, aes(sample = køretimer)) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for driving hours in old group") +
+  theme_minimal()
 
 #stat.desc
-round(pastecs::stat.desc(cbind(df_ung$computertimer, df_old$computertimer), basic = FALSE, norm = TRUE), digits = 2)
+round(pastecs::stat.desc(cbind(df_ung_no_ct$computertimer, df_old_no_ct$computertimer, df_ung_no_kt$køretimer, df_old_no_kt$køretimer), basic = FALSE, norm = TRUE), digits = 2)
+
+###### transforming the data
+
+
+#logging the data for both conditions
+df_ung_no_ct <- df_ung_no_ct %>% mutate(ung_ct_log = log(df_ung_no_ct$computertimer), 
+                                    ung_ct_sqrt = sqrt(df_ung_no_ct$computertimer),
+                                    ung_ct_inv = 1/df_ung_no_ct$computertimer)
+
+df_ung_no_kt <- df_ung_no_kt %>% mutate(ung_kt_log = log(df_ung_no_kt$køretimer), 
+                                    ung_kt_sqrt = sqrt(df_ung_no_kt$køretimer),
+                                    ung_kt_inv = 1/df_ung_no_kt$køretimer)
+
+df_old_no_ct <- df_old_no_ct %>% mutate(old_ct_log = log(df_old_no_ct$computertimer), 
+                                    old_ct_sqrt = sqrt(df_old_no_ct$computertimer),
+                                    old_ct_inv = 1/df_old_no_ct$computertimer)
+
+df_old_no_kt <- df_old_no_kt %>% mutate(old_kt_log = log(df_old_no_kt$køretimer), 
+                                    old_kt_sqrt = sqrt(df_old_no_kt$køretimer),
+                                    old_kt_inv = 1/df_old_no_kt$køretimer)
+
+#checking numeric values for both conditions with the logged data
+round(pastecs::stat.desc(cbind(df_ung_no_ct$ung_ct_log, df_ung_no_ct$ung_ct_sqrt, df_ung_no_ct$ung_ct_inv, df_ung_no_kt$ung_kt_log, df_ung_no_kt$ung_kt_sqrt, df_ung_no_kt$ung_kt_inv, df_old_no_ct$old_ct_log, df_old_no_ct$old_ct_sqrt, df_old_no_ct$old_ct_inv, df_old_no_kt$old_kt_log, df_old_no_kt$old_kt_sqrt, df_old_no_kt$old_kt_inv), basic = F, norm = TRUE), digits = 2)
+
+# looks terrible continuing with the non-transformed data and a robust t-test
 
 #non-parametric t-test (robust t-test)
 WRS2::yuen(computertimer ~ under_20, data = new_df)
-sd(new_df$computertimer)
+sd(df_ung$computertimer)
+sd(df_old$computertimer)
 
 #non-parametric t-test (robust t-test)
 WRS2::yuen(køretimer ~ under_20, data = new_df)
-sd(new_df$køretimer)
-
-
-
-new_df$under_20
-
-#df_age <- new_df %>% group_by(new_df$alder >=20 | new_df$alder < 20)
+sd(df_ung$køretimer)
+sd(df_old$køretimer)
 
 ```
-Performing a robust t-test it was found that there is a significant difference between the average hours spent playing computer or other gaming consoles weekly between people younger than 20 years of age and people equals to or older than 20 years of age, t(77.74) = 3.50, p<.001 (M_young = 4.19, SD = 7.38, M_old = 2.38, SD = 5.48). 
 
-Likewise when performing a robust t-test on the difference between the agerage number of hours spent driving a vehicle weekly there was found to be a significant difference between the two groups of younger than 20 years of age and older than or equals to 20 years of age, t(43.32) = 4.51, p<0.001 (M_young = 1.42, SD = 5.31, M_old = 3.82, SD = 3.88)
+Performing a robust t-test it was found that there is a significant difference between the average hours spent playing computer or other gaming consoles weekly between people younger than 20 years of age and people equal to or older than 20 years of age, t(74.81) = 3.34, p<.01 (p=0.0013) (M_young = 4.2, SD = 7.45, M_old = 2.41, SD = 5.51). 
+
+Likewise when performing a robust t-test on the difference between the agerage number of hours spent driving a vehicle weekly there was found to be a significant difference between the two age groups, t(43.13) = 4.43, p<.0001 (p=6e-05, 0.000005) (M_young = 0.9, SD = 2.19, M_old = 3.62, SD = 3.84)
+
+```{r parti - køretimer + computertimer visualization}
+
+# visualizing the data without transforming it
+ggplot(new_df, aes(under_20, computertimer, fill = under_20)) +
+  theme_minimal() +
+  labs(x = "Age below 20 (TRUE) and equals to or above 20 years (FALSE)", y = "Average amount of hours spent playing computer etc weekly") +
+  geom_boxplot(width = 0.5) +
+  ggtitle("Average amount of hours spent playing computer etc weekly depending on age group") +
+  stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1) + coord_cartesian(ylim = c(0,15)) + theme(legend.position = 'none')
+
+ggplot(new_df, aes(under_20, køretimer, fill = under_20)) +
+  theme_minimal() +
+  labs(x = "Age below 20 (TRUE) and equals to or above 20 years (FALSE)", y = "Average amount of hours spent driving weekly") +
+  geom_boxplot(width = 0.5) +
+  ggtitle("Average hours spent driving weekly depending on age group") +
+  stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1) + coord_cartesian(ylim = c(0,15)) + theme(legend.position = 'none')
+
+```
+
+
+```{r giving credits}
+
+#giving credits to R
+citation()
+
+# finding citations for packages
+citation('WRS2')
+
+```
+
 
 ```{r cut outs}
 #cond_a <- new_df$condition == "A"
@@ -849,5 +793,10 @@ class(new_df$computertimer)
 new_df$computertimer <- as.factor(new_df$computertimer)
 class(new_df$computertimer)
 levels(new_df$computertimer)
+
+#df_age <- new_df %>% group_by(new_df$alder >=20 | new_df$alder < 20)
+
 ```
+
+
 
