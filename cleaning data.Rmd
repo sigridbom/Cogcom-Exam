@@ -1,0 +1,212 @@
+---
+title: "cleaning data"
+author: "Sigrid"
+date: "12/19/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r packages, echo = FALSE}
+pacman::p_load(tidyverse, MuMIn, pastecs, WRS2, data.table, magrittr, dplyr, ggplot2, lme4, boot, lmerTest, caret, e1071, car, multcomp, reshape2)
+
+```
+
+
+
+```{r importing data, echo=FALSE}
+
+files <- list.files(path = "data",     #PUT THE NAME OF YOUR FOLDER WITH DATA in the quotes, it also might need '/' in the end, experiment with it :)
+                    pattern = ".csv",  #everything that contains '.csv' in its name will be listed
+                    full.names = T)    #makes it include directory path, so instead of 'logfile_1.csv' it will be 'data/logfile_1.csv')
+
+#read all the files into a tibble (a fancy df)
+#data1 <- lapply(files, read_csv) %>%  # apply read_csv() to every element in files list and send the resulting tibbles to the next line
+  #bind_rows()  #bind rows from resulting tibbles together so you have one dataset with all of your data
+
+data <- lapply(files, read_csv) %>% plyr::rbind.fill()
+
+```
+
+
+```{r PETERS KODE DO NOT TOUCH}
+
+df <- data.frame(participant = data$participant, køn = data$Køn, alder = data$Alder, computertimer = data$`Hvor mange timer computer/xbox/andet spiller De om ugen?`, køretimer = data$`Hvor mange timer om ugen kører De cirka?`, kørekort = data$`Har De kørekort? (ja/nej)`, condition = data$Condition, estimate = data$Estimate, date = data$date, ratespeed1 = data$ratespeed1.response, ratespeed1_rt = data$ratespeed1.rt, ændre_svar = data$key_resp_4.keys, ændre_svar_rt = data$key_resp_4.rt, ratespeed2 = data$ratespeed2.response, ratespeed2_rt = data$ratespeed2.rt, glasskår = data$key_resp_3.keys, glasskår_rt = data$key_resp_3.rt)
+
+df$ratespeed2[is.na(df$ratespeed2)] = 0
+df$ratespeed2_rt[is.na(df$ratespeed2_rt)] = 0
+
+colnames = c("partipant", "køn", "alder", "computertimer", "køretimer", "kørekort", "condition", "estimate", "date", "ratespeed1", "ratespeed1_rt", "ændre_svar", "ændre_svar_rt", "ratespeed2", "ratespeed2_rt", "glasskår", "glasskår_rt")
+
+#Make new dataframe
+new_df = data.frame(matrix(ncol = ncol(df), nrow = length(levels(df$data.participant))))
+colnames(new_df) = colnames
+
+#Go through each participant separately
+for (participant_id in levels(df$participant)) {
+  #Make a temporary dataframe only with that participant
+  temp_df = filter(df, participant == participant_id)
+  
+  #Make a new row to append to the new dataframe
+  new_row = data.frame(matrix(nrow = 1, ncol = ncol(new_df)))
+  colnames(new_row) = colnames
+  
+  #Go through each column in the dataframe
+  for (column in 1:ncol(temp_df)) {
+    #And also each row
+    for (row in 1:nrow(temp_df)) {
+      
+      #If the data in that row and column is not NA
+      if (is.na(temp_df[row,column]) == FALSE) {
+        #Save it to the new row
+        new_row[1,column] = as.character(temp_df[row,column])
+      }
+    }
+  }
+  #Append the new row to the new dataframe
+  new_df = rbind(new_df, new_row)
+  }
+
+```
+
+```{r cleaning part 1}
+
+#alder (2 rettelser)
+new_df[63, 3] = 15
+new_df[98, 3] = 16
+
+#computertimer (11 rettelser)
+new_df[8, 4] = 7
+new_df[26, 4] = 0
+new_df[27, 4] = 0
+new_df[33, 4] = 2
+new_df[35, 4] = 6
+new_df[42, 4] = 7
+new_df[44, 4] = 0.5
+new_df[48, 4] = 0
+new_df[52, 4] = 5
+new_df[63, 4] = 6
+new_df[97, 4] = 1
+
+#køretimer (9 rettelser)
+new_df[27,5] = 0
+new_df[29, 5] = 0.5
+new_df[47,5] = 1.5
+new_df[66, 5] = 0
+new_df[68, 5] = 0
+new_df[76,5] = 0
+new_df[97,5] = 0
+
+###### NY JULIE RET 
+###### computertimer
+# participant "Jesper"
+new_df[134, 4] = 0.5
+# participant "Miss Sunshine"
+new_df[145, 4] = 0
+# participant "Nanna"
+new_df[146, 4] = 0.5
+
+##### NY JULIE RET
+##### køretimer
+# participant "CRE95-1-AFAHQQE"
+new_df[122,5] = 6.5
+# participant "Faust"
+new_df[129,5] = 0.5
+
+###### Både køretimer og computertimer
+# participant "Allan Mose"
+new_df[116, 4] = 20
+new_df[116, 5] = 2
+# participant "bananasplit med softice"
+new_df[120, 4] = 0
+new_df[120, 5] = 0
+# participant "fluy"
+new_df[130, 4] = 0
+new_df[130, 5] = 1.5
+# participant "KapperDaRapper"
+new_df[138, 4] = 4
+new_df[138, 5] = 1.5
+# Particpant "perfekt"
+new_df[150, 4] = 0
+new_df[150, 5] = 8
+# participant "Sugar"
+new_df[156, 4] = 0
+new_df[156, 5] = 1
+# participant "university professor
+new_df[157, 4] = 0
+new_df[157, 5] = 8
+
+
+# particpant "emilie"
+new_df[128, 2] = "Kvinde"
+new_df[128, 6] = "ja"
+new_df[128, 5] = 0.5
+
+# particpant "julie"
+new_df[137, 2] = "Kvinde"
+new_df[137, 6] = "nej"
+
+# participant "mette"
+new_df[144, 2] = "Kvinde"
+new_df[144, 6] = "ja"
+
+# participant "peter"
+new_df[151, 2] = "Mand"
+new_df[151, 6] = "ja"
+
+# participant "poul"
+new_df[152, 2] = "Mand"
+new_df[152, 6] = "ja"
+
+#kørekort
+new_df[102,6] = "nej"
+new_df[102,5] = 0.75
+
+
+# to lower case kørekort
+new_df$kørekort <- tolower(new_df$kørekort)
+
+# removing person with no age and NA's (8 rækker)
+new_df <- new_df[-c(12, 13, 27, 34, 60, 71, 82, 83, 98, 104, 114, #participants with numbers as ID
+                    119, 125, 136), ] # participants with names as ID
+# Participants med navne, der skal fjernes: 
+# "Banan", "Duc7", "Julemor", 
+# folk der har misforstået ændre_svar: participant nr. 14 og participant nr. 65
+
+# "Banan" kunne ikke se rating skalaen og vidste derfor ikke hvad han selv svarede
+# "Julemor" oplyste bagefter at hun kendte eksperimentet i forvejen
+# "Duc7" har ikke lavet eksperimentet færdigt
+
+#creating a new column with row numbers
+new_df$ID <- seq.int(nrow(new_df))
+
+```
+
+
+```{r cleaning part 2}
+
+#creating a new column with rating speed
+
+class(new_df$ratespeed1)
+new_df$ratespeed1 <- as.numeric(new_df$ratespeed1)
+new_df$ratespeed2 <- as.numeric(new_df$ratespeed2)
+
+new_df$hastighed1 <- new_df$ratespeed1*25
+new_df$hastighed2 <- new_df$ratespeed2*25
+
+
+```
+
+DATA FRAME LOOKS GOOD NOW
+
+
+```{r gem datasæt}
+
+#når al data er indsamlet - husk at gemme det færdige datasæt her, og loade det igen - evt lav et nyt r-markdown? 
+
+write.csv(new_df,"data_done.csv")
+
+```
