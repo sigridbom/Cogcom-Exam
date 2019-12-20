@@ -51,14 +51,11 @@ a2_ung
 b1_ung
 b2_ung
 
+# for reporting numbers in the text
 new_df$alder <- as.numeric(new_df$alder)
 mean(new_df$alder)
 sd(new_df$alder)
 summary(new_df$køn == "Kvinde")
-
-#ungroup()
-#df_age <- new_df %>% group_by(new_df$alder >=20 | new_df$alder < 20)
-#remove(df_age)
 
 ```
 
@@ -76,7 +73,7 @@ by_cond %>% summarise(mean(hastighed1))
 
 ```
 
-```{r visualizing the data in general - make better}
+```{r visualizing the data in general - make better, not usefull right now}
 
 ggplot(new_df, aes(hastighed1, ID)) + geom_point() + geom_smooth(method = lm)
 
@@ -85,8 +82,10 @@ ggplot(new_df, aes(condition, hastighed1)) + geom_point() + geom_smooth(method =
 
 ```
 
+### Hypothesis 1a
+In order to conduct a t-test the assumption of normally distributed data must be checked (parametric t-test).
 
-```{r Hyp1a - t-test assumptions hastighed/condition}
+```{r Hyp 1a - t-test assumptions hastighed/condition}
 
 #from class 6 notes filled
 
@@ -138,10 +137,11 @@ round(pastecs::stat.desc(cbind(condA$hastighed1, condB$hastighed1), basic = FALS
 
 
 ```
-Conclusion about the data being normally distributed or not:
-Visually the data do not look normally distributed in any way, however it looks a lot better numerically. I will try to transform the data. 
 
-```{r Hyp1a - transforming the data}
+Conclusion about the data being normally distributed or not:
+Visually the data do not look normally distributed in any way, however it looks a bit better numerically (despite Shapiro Willks test being significant = not normally distributed data). I will try to transform the data. 
+
+```{r Hyp 1a - transforming the data}
 
 #logging the data for both conditions
 condA <- condA %>% mutate(rt_log = log(condA$hastighed1), 
@@ -160,9 +160,9 @@ round(pastecs::stat.desc(cbind(condA$rt_log, condA$rt_sqrt, condA$rt_inv, condB$
 
 ```
 
-Visualizing the transformed data
+Visualizing the transformed data, but only the log and squareroot transformed data because it seemed to fit the data better than the reciprocal transformation. 
 
-```{r Hyp1a visual inspection of the transformed data}
+```{r Hyp 1a visual inspection of the transformed data}
 
 #Check assumptions again
 ############ Checking Assumptions for Condition A (best candidates: log and sqrt)
@@ -227,28 +227,31 @@ ggplot(condB, aes(sample = rt_sqrt )) +
 
 
 ##### I'll continue with squareroot transformation. 
-## bind cond1 and cond2 together and keep only the needed transformation
-transformed_data <- bind_rows(condA, condB) %>%
+## bind cond1 and cond2 together and keep only the needed transformation #doesn't matter
+#transformed_data <- bind_rows(condA, condB) %>%
   select(-c(rt_z, rt_log, rt_inv))
 
 ```
 
 The data are still not normally distributed. I will therefore try different things:
 - a parametric t-test on the transformed data
-- a non-parametric independent t-test (between subject design)
+- a non-parametric independent t-test on the non-transformed data (between subject design)
 
-```{r Hyp1a - t-test on hastighed1 and condition}
+```{r Hyp 1a - t-test on hastighed1 and condition}
 
-# parametric tests on the transformed data
+#### parametric tests on the transformed data
 t.test(transformed_data$rt_sqrt ~ transformed_data_sqrt$condition)
 
-#### calculating the SD of the mean of estimating spee 1 data according to condition on the transformed data
+# we need the mean and the SD of the data when reporting the results
+# calculating the SD of the mean of estimating spee 1 data according to condition on the transformed data
 condA %>% summarise(sd(rt_sqrt))
 condB %>% summarise(sd(rt_sqrt))
 
-# non-parametric test on non-transformed data
+#### non-parametric test on non-transformed data
+WRS2::yuen(hastighed1 ~ condition, new_df)
 
-##### calculating the mean of estimating speed1 according to condition on the non-transformed data
+# need the mean and SD when reporting the results of the t-test
+# calculating the mean of estimating speed1 according to condition on the non-transformed data
 #changing class to be able to use group_by
 new_df$condition <- as.factor(new_df$condition)
 class(new_df$condition)
@@ -265,17 +268,18 @@ by_cond %>% summarise(sd(hastighed1))
 
 ```
 Not significant results....
-## new numbers change them
+
 From the parametric t-test on the sqrt transformed data: do not use!
-Using an independent t-test, we found that condition B ("smadrede") did not significantly increase the average speed estimate of the car, t(x) = x, p x 5, (M condA = x, M condB = x, SD condA = x, SD condB = x)
+Using an independent t-test, we found that condition B ("smadrede") did not significantly increase the average speed estimate of the car, t(x) = x, p x , (M condA = x, M condB = x, SD condA = x, SD condB = x)
 
 From the non-parametric t-test on the non-transformed data:
 *Using a robust independent t-test, we found that condition B ("smadrede") did not significantly increase the average speed estimate of the car, t(79.13) = 0.7293, p >.05 (p = .47), (M condA = 84.31, M condB = 90.77, SD condA = 22.68, SD condB = 29.71)*
 
-```{r Hyp1a - visualizing the t-tests}
+```{r Hyp 1a - visualizing the t-tests}
 
 transformed_data$condition <- as.factor(transformed_data$condition)
 
+# the transformed data - do not use this graph because we do not use this test
 ggplot(transformed_data, aes(x = condition, y = rt_sqrt, colour = condition)) +
   theme_minimal() +
   labs(x = "Condition", y = "Speed estimate 1 (squareroot transformation)") +
@@ -284,7 +288,7 @@ ggplot(transformed_data, aes(x = condition, y = rt_sqrt, colour = condition)) +
   stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1)
 
 
-# trying the non-transformed data THIS ONE IS USED
+# trying the non-transformed data THIS ONE IS USED IN THE REPORT
 new_df$condition <- as.factor(new_df$condition)
 ggplot(new_df, aes(x = condition, y = hastighed1, colour = condition)) +
   theme_minimal() +
@@ -294,14 +298,12 @@ ggplot(new_df, aes(x = condition, y = hastighed1, colour = condition)) +
   stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1) + theme(legend.position = 'none')
   
 
-
-
-#trying something
+#trying something - not used
 rplot <- ggplot(transformed_data_sqrt, aes(x = condition, y = rt_sqrt, colour = condition)) +
   theme_minimal() +
     labs(x = "Condition", y = "Squareroot transformed speed estimate 1 data") 
 
-#Box plot - looks weird
+#Box plot - looks weird - not used
 rplot +
   geom_boxplot(width = 0.5) +
   ggtitle("Box Plot with mean") +
@@ -310,7 +312,7 @@ rplot +
   ggtitle("Using Standard Error of the Mean") 
 
 
-#Violin plot
+#Violin plot - not used
 rplot +
   geom_violin() +
   ggtitle("Violin Plot") +
@@ -318,6 +320,7 @@ rplot +
   stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1)
 
 ```
+
 ### LOGISIC REGRESSION - Glas spørgsmål assumptions checking
 (see class 10 notes filled)
 
@@ -345,14 +348,14 @@ rplot +
   i.e. 49 * 1 / 0.49 = 100
   We have more than 100 observations in our data set, so this assumption is met as well.
 
-```{r Hyp1b - glas spørgsmål - logistic regression}
+```{r Hyp 1b - glas spørgsmål - logistic regression} 
 
 # see class 10 notes filled
 new_df$glasskår <- as.factor(new_df$glasskår)
 
 #change levels
 new_df$glasskår <- relevel(new_df$glasskår, "n")
-#check levels (j og condA skal være baseline)
+#check levels (n og condA skal være baseline)
 levels(new_df$glasskår)
 levels(new_df$condition)
 new_df$condition <- relevel(new_df$condition, "A")
@@ -363,39 +366,42 @@ plot(m)
 summary(m)
 
 # the probability of answering yes in condition a
-round(boot::inv.logit(0.570545), digits = 4)
-# = 63,89%
-
+round(boot::inv.logit(-0.58779), digits = 4)
+# = 35.71% 
 
 # the probability of answering yes in condition b
-round(boot::inv.logit(0.570545 - 0.004819), digits = 4)
-# = 63,78%
+round(boot::inv.logit(-0.58779 - 0.02532), digits = 4)
+# = 35.14%
 
 #which means that the probability of answering no in condA is 
-1-0.6389
-# = 0.37
+1-0.3571
+# = 64.29%
 
 #which means that the probability of answering no in condB is 
-1-0.6378
-# = 0.36
+1-0.3514
+# = 64.86%
 
 
-#MuMIn::r.squaredGLM(m)
+#MuMIn::r.squaredGLM(m) - doesn't work, not used
 
+# trying to make an interesing plot, not really working out, Julie do what you wanna do :-)
+ggplot(new_df, aes(x = glasskår, fill = condition)) +
+  theme_minimal() + geom_bar(width = 0.5) #+ stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1) + labs(x = "Condition", y = "", title = "") + theme(legend.position = 'none')
 
 ```
 
 ### Reporting the results APA-style - not sure this is how to do it
 
-Results of the binary logistic regression indicated that there was a significant association between condition A and answering the glas question positively, beta-estimate = 0.53, SE = 0.25, p<.05, while the changing the condition to B did not have a significant effect on answering the glas question positively, beta-estimate = -0.71, SE = 0.35, p>.05. I.e. the answer of the glas question is not significantly modulated by the given condition.
+Results of the binary logistic regression indicated that there was no significant association between answering the glass question positively given a specific condition, beta-estimate = -0.58, SE = 0.25, p<.05, while changing the condition from A to B, beta-estimate = -0.03, SE = 0.35, p>.05 (p = 0.94). I.e. the answer of the glas question is not significantly modulated by a given condition. 
 
-140 degrees of freedom = 188.59???
+Also comment on the null deviance versus the residual deviance (does not look like the model is a good fit to the data, maybe the assumptions are violated??) and the deviance residuals (min, 1Q, median, 3q, max) are not specifically symmetrical.. 
 
-```{r parti - køretimer vs computertimer + kørekort}
 
-#making new data frames separating age above and younger than 20 years
-df_old <- new_df %>% subset(new_df$alder >= 20)
-df_ung <- new_df %>% subset(new_df$alder < 20)
+```{r participants - køretimer vs computertimer + kørekort}
+
+#making new data frames separating age above and younger than 20 years 
+df_old <- new_df %>% subset(new_df$alder >= 20) 
+df_ung <- new_df %>%  subset(new_df$alder < 20)
 
 # getting the gender distribution of each of these groups
 summary(df_old$køn == "Kvinde")
@@ -407,7 +413,7 @@ df_old$køretimer <- as.numeric(df_old$køretimer)
 class(df_old$computertimer)
 class(df_old$køretimer)
 
-# calculating the means
+# calculating the means for the old age group
 m_old_com <- round(mean(df_old$computertimer), digits = 2)
 m_old_kør <- round(mean(df_old$køretimer), digits = 2)
 
@@ -417,14 +423,11 @@ df_ung$køretimer <- as.numeric(df_ung$køretimer)
 class(df_ung$computertimer)
 class(df_ung$køretimer)
 
-#calculating the means
+#calculating the means for the young age group
 m_ung_com <- round(mean(df_ung$computertimer), digits = 2)
 m_ung_kør <- round(mean(df_ung$køretimer), digits = 2)
 
 sd(df_ung$computertimer)
-
-## should we make a t-tesT??? then we could say that the "adults significanlty drives more" etc etc but to support what? 
-
 
 ###### kørekort eller ej
 # calculating the number of people have kørekort both in general and according to the different age groups 
@@ -461,7 +464,7 @@ summary(df_old$køn == "Kvinde")
 ```
 
 
-```{r Hyp2 ændre svar percentage}
+```{r Hyp 2a ændre svar percentage}
 
 # calculating the number of people who changed their answers in general
 class(new_df$ændre_svar)
@@ -509,9 +512,9 @@ summary(df_svar$køn == "Mand" & df_svar$under_20 == FALSE)
 ```
 Now testing if age significantly predicts if people will change their answer.. 
 
-remember assumptions!!
+remember assumptions!! (have not been checked yet)
 
-```{r Hyp 2 ændre svar logistic regression (multiple)}
+```{r Hyp 2a ændre svar - simple logistic regression}
 
 new_df$ændre_svar <- as.factor(new_df$ændre_svar)
 levels(new_df$ændre_svar)
@@ -542,10 +545,11 @@ boot::inv.logit(-1.4018 - 1.0492)
 # = 7.94%, p>.05 
 
 ```
-A significant effect of the younger group was found, beta = -1.4018, SE = 0.28, z-value = -5.02, p<.001 (p=5.09e-07), while the other age group only came close to being significant, beta = -1.0492, SE = 0.54, z-value = -1.93, p>.05 (p = 0.0534).
+A significant effect of the younger group was found, beta = -1.4018, SE = 0.28, z-value = -5.02, p<.001 (p=5.09e-07), while the other age group only came very close to being significant, beta = -1.0492, SE = 0.54, z-value = -1.93, p>.05 (p = 0.0534).
+I.e. choosing to change one's answer can not be concluded to significantly be modulted by age (below or above 20 years). men det er lige på vippen!
 
 
-```{r Hyp 2 det nye svar - forskel i procent}
+```{r Hyp 2b det nye svar - forskel i procent}
 
 #changing classes
 new_df$alder <- as.numeric(new_df$alder)
@@ -602,22 +606,34 @@ df_svar_gender_old %>% summarise(round(sd(speed_change_plus), digits = 2))
 
 WRS2::yuen(speed_change_plus ~ køn, data = df_svar_gender_old)
 
-
-# visualizing the data ## work in progress
-
-ggplot(df_svar_gender_ung, aes(køn, speed_change_plus, fill = køn)) +
+# visualizing the data - this is the used graph, do not change!
+ggplot(df_svar_gender_ung, aes(x = køn, y = speed_change_plus, fill = køn)) +
   theme_minimal() + geom_boxplot(width = 0.5) + stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1) + coord_cartesian(ylim = c(0,50)) + labs(x = "Gender", y = "Percentage change from first to second estimate of speed", title = "Percentage change in speed estimae according to gender (younger than 20 y)") + scale_fill_discrete(name = "Gender", labels = c("Women", "Men"))
 
+
+# trying to make a better graph by using Kenneth's code
+df_svar_gender_ung$mean_hastighed1 <- mean(df_svar_gender_ung$hastighed1)
+df_svar_gender_ung$mean_hastighed2 <- mean(df_svar_gender_ung$hastighed2)
+
 # plot hvor det går fra estimate 1 til estimate 2 i gennemsnit ift køn og kun den unge gruppe
-#ggplot(df_svar_group_ung, aes(køn, speed_change_plus, fill = køn)) + geom_quantile()
+ggplot(df_svar_gender_ung, aes(x = c(mean_hastighed1, mean_hastighed2), speed_change_plus, fill = køn)) + geom_point(stat = 'summary', fun.y = mean) +
+  stat_summary(fun.y = mean, geom = "line", aes(group = c(mean_hastighed1, mean_hastighed2))) +
+  geom_errorbar(stat = 'summary',
+                fun.data = mean_se,
+                width = 0.1) +
+  labs(x = "Paper", y = "Mean Sentiment Score", color = "Party") +
+  scale_y_continuous(breaks = seq(-0.005, 0.025, 0.005))
+
+
 #+ theme(legend.position = 'none')
+ #geom_pointrange() + stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1)
 
 ```
 The women who chose to change their answer changed it on average by 18.61 percent, where as the men changed it by 38.75%. Testing if this is signifcant by making a robust t-test.
 
 There was found no significant difference between the mean change of speed estimate for men and women in general, t(10.11) = 1.41, p>.05 (p = .19), (M women = 18.61, SD women = 10.75 , M men = 38.75, SD = 34.63)
 
-*There was found a significant difference between the mean change of speed estimate for men and women in the age group below 20 years of age, t(10) = 2.25, p<.05 (p = 0.04824) (M women = 14.87, M men = 31.23, SD women = 10.53, SD men = 17.41)*
+*There was found a significant difference between the mean change of speed estimate for men and women in the age group below 20 years of age, t(10) = 2.25, p<.05 (p = 0.04824) (M women = 14.87, M men = 31.23, SD women = 10.53, SD men = 17.41)* (assumptions for a possible parametric t-test have not been checked yet!)
 
 There was found no significant difference between the mean change of speed estimate for men in women in the older age group (equals to or above 20 years of age), t(1) = 0.78, p>.05 (p = .58) (M women = 27.35, M men = 72.57, SD women = 4.97, SD men = 82.28)
 
@@ -627,10 +643,10 @@ There was found no significant difference between the mean change of speed estim
 new_df$computertimer <- as.numeric(new_df$computertimer)
 new_df$køretimer <- as.numeric(new_df$køretimer)
 
-# removing outliers
-new_df$ct_z = (new_df$computertimer - mean(new_df$computertimer))/sd(new_df$computertimer)
+# removing outliers 
+new_df$ct_z = (new_df$computertimer - mean(new_df$computertimer))/sd(new_df$computertimer) 
 new_df$kt_z = (new_df$køretimer - mean(new_df$køretimer))/sd(new_df$køretimer)
-
+ 
 #filter data 
 no_outliers_ct = new_df %>% filter(ct_z > -3 & ct_z < 3) 
 no_outliers_kt = new_df %>% filter(kt_z > -3 & kt_z < 3) 
@@ -745,6 +761,7 @@ sd(df_old$køretimer)
 
 ```
 
+The data did not meet the assumptions of a parametric t-test. therefore:
 Performing a robust t-test it was found that there is a significant difference between the average hours spent playing computer or other gaming consoles weekly between people younger than 20 years of age and people equal to or older than 20 years of age, t(74.81) = 3.34, p<.01 (p=0.0013) (M_young = 4.2, SD = 7.45, M_old = 2.41, SD = 5.51). 
 
 Likewise when performing a robust t-test on the difference between the agerage number of hours spent driving a vehicle weekly there was found to be a significant difference between the two age groups, t(43.13) = 4.43, p<.0001 (p=6e-05, 0.000005) (M_young = 0.9, SD = 2.19, M_old = 3.62, SD = 3.84)
@@ -774,8 +791,8 @@ ggplot(new_df, aes(under_20, køretimer, fill = under_20)) +
 #giving credits to R
 citation()
 
-# finding citations for packages
-citation('WRS2')
+# finding citations for packages 
+citation('WRS2') 
 
 ```
 
@@ -785,9 +802,9 @@ citation('WRS2')
 
 #making a new dataframe grouped by estimate - to use later
 class(new_df$estimate)
-new_df$estimate <- as.factor(new_df$estimate)
+new_df$estimate <- as.factor(new_df$estimate) 
 by_estimate <- group_by(new_df, estimate)
-
+ 
 
 class(new_df$computertimer)
 new_df$computertimer <- as.factor(new_df$computertimer)
