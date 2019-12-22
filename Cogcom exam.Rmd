@@ -397,6 +397,44 @@ Results of the binary logistic regression indicated that there was no significan
 Also comment on the null deviance versus the residual deviance (does not look like the model is a good fit to the data, maybe the assumptions are violated??) and the deviance residuals (min, 1Q, median, 3q, max) are not specifically symmetrical.. 
 
 
+```{r confusion matrix - glasskår}
+
+library(caret)
+
+#let's remind ourselves the model: yes glasskår (jagged is level 1) ~ condition
+summary(m) 
+
+#let's predict *probabilities* of jagged shape using consonants from the original dataframe
+predicted_probs = predict(m, type = 'response')
+
+#extract actual shape categories from the original dataframe
+actual_categories = new_df$glasskår
+
+#make a dataframe to see predicted probabilities of jagged category against the actual category
+pred_df <- tibble(predicted_probs, actual_categories)
+
+#make a new column to see more easily what our model predicted: if probability is less than 0.5 - it predicted 'nej', otherwise - it predicted yes
+pred_df$predicted_category = ifelse(pred_df$predicted_probs < 0.5, "n", "j")
+
+#make it a factor (it's a character due to the way we specified ifelse outcomes)
+pred_df$predicted_category <- as_factor(pred_df$predicted_category)
+
+
+confusionMatrix(pred_df$predicted_category, pred_df$actual_categories, positive ="j")
+
+plot(confusionMatrix$)
+
+```
+```{r}
+
+ggplot(new_df, aes(glasskår, size, color = word, shape = word)) + geom_point() 
+
+#spread points out - so much better
+ggplot(new_df, aes(glasskår, size, color = word, shape = word)) + geom_jitter(width = .4, height = .4) 
+```
+
+
+
 ```{r participants - køretimer vs computertimer + kørekort}
 
 #making new data frames separating age above and younger than 20 years 
@@ -814,6 +852,4 @@ levels(new_df$computertimer)
 #df_age <- new_df %>% group_by(new_df$alder >=20 | new_df$alder < 20)
 
 ```
-
-
 
