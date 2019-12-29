@@ -427,10 +427,10 @@ plot(confusionMatrix$)
 ```
 ```{r}
 
-ggplot(new_df, aes(glasskår, size, color = word, shape = word)) + geom_point() 
+ggplot(new_df, aes(glasskår, condition, color = condition, shape = condition)) + geom_point() 
 
 #spread points out - so much better
-ggplot(new_df, aes(glasskår, size, color = word, shape = word)) + geom_jitter(width = .4, height = .4) 
+ggplot(new_df, aes(glasskår, condition, color = condition, shape = condition)) + geom_jitter(width = .4, height = .4) 
 ```
 
 
@@ -595,7 +595,7 @@ new_df$køn <- as.factor(new_df$køn)
 new_df$estimate <- as.factor(new_df$estimate)
 
 #calculating change in percentage
-new_df$speed_change <- ((new_df$hastighed1-new_df$hastighed2)/new_df$hastighed1)*100
+new_df$speed_change <- ((new_df$hastighed1 - new_df$hastighed2)/new_df$hastighed1)*100
 
 # how many observations do we have with a changed answer
 summary(new_df$ændre_svar == "j")
@@ -609,8 +609,16 @@ df_svar$speed_change_plus <- sqrt((df_svar$speed_change)^2)
 
 #calculating the mean change no matter which direction they were pushed in
 round(mean(df_svar$speed_change_plus), digits = 2)
-#29.16 km/h
+#29.16 %
 round(sd(df_svar$speed_change_plus), digits = 2)
+
+# doing the same but with km/h instead of percent
+df_svar$kmh_diff <- df_svar$hastighed1 - df_svar$hastighed2
+df_svar$kmh_diff <- sqrt((df_svar$kmh_diff)^2)
+
+#calculating the mean of this
+round(mean(df_svar$kmh_diff), digits = 2)
+round(sd(df_svar$kmh_diff), digits = 2)
 
 # group the data frame into estimate 1 (hurtigere) and estimate 2 (langsommere)
 df_svar_group <- group_by(df_svar, estimate)
@@ -674,6 +682,168 @@ There was found no significant difference between the mean change of speed estim
 *There was found a significant difference between the mean change of speed estimate for men and women in the age group below 20 years of age, t(10) = 2.25, p<.05 (p = 0.04824) (M women = 14.87, M men = 31.23, SD women = 10.53, SD men = 17.41)* (assumptions for a possible parametric t-test have not been checked yet!)
 
 There was found no significant difference between the mean change of speed estimate for men in women in the older age group (equals to or above 20 years of age), t(1) = 0.78, p>.05 (p = .58) (M women = 27.35, M men = 72.57, SD women = 4.97, SD men = 82.28)
+
+```{r Hyp2b assumptions}
+
+#first, remove outliers from the whole data (everything 3 sd away from the mean)
+#calculate z score
+df_svar$rt_z = (df_svar$speed_change_plus - mean(df_svar$speed_change_plus)/sd(df_svar$speed_change_plus)
+
+#filter data 
+no_outliers_svar = df_svar %>% filter(rt_z > -3 & rt_z < 3)
+
+#subsetting data
+girls <- no_outliers_svar %>% filter(køn == "Kvinde" & under_20 == 'TRUE')
+boys <- no_outliers_svar %>% filter(køn == "Mand" & under_20 == 'TRUE')
+
+############ Checking Assumptions for girls
+#histogram
+ggplot(girls, aes(x = speed_change_plus)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.4) +
+  ggtitle("Distribution of percentage change in speed estimate1 for girls") +
+  stat_function(fun = dnorm, args = list(mean = mean(girls$speed_change_plus, na.rm = TRUE), sd = sd(girls$speed_change_plus, na.rm = TRUE)), colour = "red", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(girls, aes(sample = speed_change_plus)) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for percentage change in speed estimate for young girls") +
+  theme_minimal()
+
+############ Checking Assumptions for boys
+#histogram
+ggplot(boys, aes(x = speed_change_plus)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.4) +
+  ggtitle("Distribution of percentage change in speed estimate1 for boys") +
+  stat_function(fun = dnorm, args = list(mean = mean(boys$speed_change_plus, na.rm = TRUE), sd = sd(boys$speed_change_plus, na.rm = TRUE)), colour = "red", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(boys, aes(sample = speed_change_plus)) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for percentage change in speed estimate for young boys") +
+  theme_minimal()
+
+numbers1 <- round(pastecs::stat.desc(cbind(girls$speed_change_plus, boys$speed_change_plus), basic = FALSE, norm = TRUE), digits = 2)
+
+# try transforming a doing a normal t.test
+
+
+#logging the data for both conditions
+girls <- girls %>% mutate(rt_log = log(girls$speed_change_plus), 
+                                    rt_sqrt = sqrt(girls$speed_change_plus),
+                                    rt_inv = 1/girls$speed_change_plus)
+
+boys <- boys %>% mutate(rt_log = log(boys$speed_change_plus), 
+                                    rt_sqrt = sqrt(boys$speed_change_plus),
+                                    rt_inv = 1/boys$speed_change_plus)
+
+#checking numeric values for both conditions with the logged data
+numbers2 <- round(pastecs::stat.desc(cbind(girls$rt_log, girls$rt_sqrt, girls$rt_inv, boys$rt_log, boys$rt_sqrt, boys$rt_inv), basic = F, norm = TRUE), digits = 2)
+
+
+#Check assumptions again
+############ Checking Assumptions for Condition A (best candidates: log and sqrt)
+#histogram
+ggplot(girls, aes(x = rt_log)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.25) +
+  ggtitle("Distribution of percentage change in speed estimate data (log transformed) for girls") +
+  stat_function(fun = dnorm, args = list(mean = mean(girls$rt_log, na.rm = TRUE), sd = sd(girls$rt_log, na.rm = TRUE)), colour = "darkgreen", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(girls, aes(sample = rt_log )) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for percentage change in speed estimate data (log transformed) for girls") +
+  theme_minimal()
+
+#histogram
+ggplot(girls, aes(x = rt_sqrt)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.25) +
+  ggtitle("Distribution of percentage change in speed estimate data (square root transformed) for girls") +
+  stat_function(fun = dnorm, args = list(mean = mean(girls$rt_sqrt, na.rm = TRUE), sd = sd(girls$rt_sqrt, na.rm = TRUE)), colour = "darkgreen", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(condA, aes(sample = rt_sqrt)) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for percentage change in speed estimate data (squareroot transformed) for girls") +
+  theme_minimal()
+
+#### assumptions for boys
+
+ggplot(boys, aes(x = rt_log)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.25) +
+  ggtitle("Distribution of percentage change in speed estimate data (log transformed) for boys") +
+  stat_function(fun = dnorm, args = list(mean = mean(boys$rt_log, na.rm = TRUE), sd = sd(boys$rt_log, na.rm = TRUE)), colour = "darkgreen", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(boys, aes(sample = rt_log )) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for percentage change in speed estimate data (log transformed) for boys") +
+  theme_minimal()
+
+#histogram
+ggplot(boys, aes(x = rt_sqrt)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.25) +
+  ggtitle("Distribution of percentage change in speed estimate data (square root transformed) for boys") +
+  stat_function(fun = dnorm, args = list(mean = mean(boys$rt_sqrt, na.rm = TRUE), sd = sd(boys$rt_sqrt, na.rm = TRUE)), colour = "darkgreen", size = 1) +
+  theme_minimal()
+
+#qqplot
+ggplot(boys, aes(sample = rt_sqrt)) +
+  stat_qq() +
+  stat_qq_line(colour = 'red') +
+  ggtitle("Qqplot for percentage change in speed estimate data (squareroot transformed) for boys") +
+  theme_minimal()
+
+numbers1
+numbers2
+
+#I'll continue with log transformed data
+
+transformed_data_new <- bind_rows(girls, boys) 
+view(transformed_data_new)
+
+```
+
+
+```{r Hyp 2b t-test on transformed data}
+
+#### parametric tests on the transformed data
+t.test(transformed_data_new$rt_log ~ transformed_data_new$køn, transformed_data_new)
+
+#calculating the means
+girls %>% summarise(mean(speed_change_plus))
+boys %>% summarise(mean(speed_change_plus))
+
+# we need the mean and the SD of the data when reporting the results
+# calculating the SD of the mean of estimating spee 1 data according to condition on the transformed data
+girls %>% summarise(sd(speed_change_plus))
+boys %>% summarise(sd(speed_change_plus))
+
+#### non-parametric test on non-transformed data
+WRS2::yuen(speed_change_plus ~ køn, data = df_svar_gender_ung)
+
+
+# visualizing the data - this is the used graph, do not change!
+ggplot(df_svar_gender_ung, aes(x = køn, y = speed_change_plus, fill = køn)) +
+  theme_minimal() + geom_boxplot(width = 0.5) + stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1) + coord_cartesian(ylim = c(0,50)) + labs(x = "Gender", y = "Percentage change from first to second estimate of speed", title = "Percentage change in speed estimae according to gender (younger than 20 y)") + scale_fill_discrete(name = "Gender", labels = c("Women", "Men"))
+
+
+# visualizing the data - this is the used graph, do not change! TRANSFORMED
+ggplot(transformed_data_new, aes(x = køn, y = rt_log, fill = køn)) +
+  theme_minimal() + geom_boxplot(width = 0.5) + stat_summary(fun.data = mean_se, geom = "errorbar", color = 'black', width = 0.1) + coord_cartesian(ylim = c(0,50)) + labs(x = "Gender", y = "Percentage change from first to second estimate of speed", title = "Percentage change in speed estimae according to gender (younger than 20 y)") + scale_fill_discrete(name = "Gender", labels = c("Women", "Men")) + coord_cartesian(ylim = c(1.5,4.5))
+
+
+```
+
 
 ```{r parti - t-test between computer hours and driving hours + assumptions}
 
